@@ -115,7 +115,8 @@ local ConfigSystem = {
 	ToggleElements = {},
 	SliderElements = {},
 	DropdownElements = {},
-	TabElements = {}
+	TabElements = {},
+	AllElements = {}
 }
 
 function ConfigSystem:SetTheme(themeName)
@@ -230,11 +231,11 @@ function ConfigSystem:UpdateAllThemeElements(newColor)
 	return newColor
 end
 
-function ConfigSystem:SaveConfig(name)
+function ConfigSystem:SaveConfig(name, data)
 	local configData = {
 		Name = name,
 		Theme = self.CurrentTheme,
-		UIElements = {}
+		Data = data or {}
 	}
 	
 	self.Configs[name] = configData
@@ -261,7 +262,7 @@ function ConfigSystem:LoadConfig(name)
 			Content = "Config '" .. name .. "' loaded successfully!",
 			Color = self.ThemeColors[self.CurrentTheme],
 			Delay = 3
-		}
+		}, config.Data
 	else
 		return {
 			Title = "Config",
@@ -269,7 +270,7 @@ function ConfigSystem:LoadConfig(name)
 			Content = "Config '" .. name .. "' not found!",
 			Color = Color3.fromRGB(255, 50, 50),
 			Delay = 3
-		}
+		}, nil
 	end
 end
 
@@ -296,6 +297,14 @@ function ConfigSystem:DeleteConfig(name)
 			Delay = 3
 		}
 	end
+end
+
+function ConfigSystem:GetConfigList()
+	local list = {}
+	for name, _ in pairs(self.Configs) do
+		table.insert(list, name)
+	end
+	return list
 end
 
 local function MakeNotify(NotifyConfig)
@@ -780,6 +789,7 @@ function Kairo:CreateWindow(config)
 	local TabContents = {}
 	local CurrentTab = nil
 	local TabCount = 0
+	local AllElements = {}
 
 	local function UpdateTabSize()
 		local OffsetY = 0
@@ -1007,7 +1017,7 @@ function Kairo:CreateWindow(config)
 		return Button
 	end
 
-	local function CreateToggle(tabContainer, title, content, defaultValue, callback)
+	local function CreateToggle(tabContainer, title, content, defaultValue, callback, elementId)
 		if not tabContainer or not tabContainer:IsA("Frame") then return end
 		
 		local Toggle = Instance.new("Frame")
@@ -1173,13 +1183,21 @@ function Kairo:CreateWindow(config)
 		task.wait(0.1)
 		UpdateContentSize()
 
-		return {
+		local toggleFunc = {
 			Value = state,
-			Set = SetState
+			Set = SetState,
+			Type = "Toggle",
+			Id = elementId
 		}
+		
+		if elementId then
+			AllElements[elementId] = toggleFunc
+		end
+		
+		return toggleFunc
 	end
 
-	local function CreateInput(tabContainer, title, content, placeholder, callback)
+	local function CreateInput(tabContainer, title, content, placeholder, callback, elementId)
 		if not tabContainer or not tabContainer:IsA("Frame") then return end
 		
 		local Input = Instance.new("Frame")
@@ -1270,8 +1288,11 @@ function Kairo:CreateWindow(config)
 		InputTextBox.Name = "InputTextBox"
 		InputTextBox.Parent = InputFrame
 		
-		local inputFunc = {}
-		inputFunc.Value = ""
+		local inputFunc = {
+			Value = "",
+			Type = "Input",
+			Id = elementId
+		}
 		
 		function inputFunc:Set(value)
 			InputTextBox.Text = value
@@ -1288,10 +1309,14 @@ function Kairo:CreateWindow(config)
 		task.wait(0.1)
 		UpdateContentSize()
 
+		if elementId then
+			AllElements[elementId] = inputFunc
+		end
+		
 		return inputFunc
 	end
 
-	local function CreateDropdown(tabContainer, title, content, options, multi, defaultValue, callback)
+	local function CreateDropdown(tabContainer, title, content, options, multi, defaultValue, callback, elementId)
 		if not tabContainer or not tabContainer:IsA("Frame") then return end
 		
 		local Dropdown = Instance.new("Frame")
@@ -1686,9 +1711,12 @@ function Kairo:CreateWindow(config)
 		task.wait(0.1)
 		UpdateContentSize()
 
-		local dropdownFunc = {}
-		dropdownFunc.Value = dropdownData.Value
-		dropdownFunc.Options = dropdownData.Options
+		local dropdownFunc = {
+			Value = dropdownData.Value,
+			Options = dropdownData.Options,
+			Type = "Dropdown",
+			Id = elementId
+		}
 		
 		function dropdownFunc:Set(value)
 			if dropdownData.Multi then
@@ -1748,10 +1776,14 @@ function Kairo:CreateWindow(config)
 			dropdownFunc.Options = dropdownData.Options
 		end
 		
+		if elementId then
+			AllElements[elementId] = dropdownFunc
+		end
+		
 		return dropdownFunc
 	end
 
-	local function CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback)
+	local function CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId)
 		if not tabContainer or not tabContainer:IsA("Frame") then return end
 		
 		local Slider = Instance.new("Frame")
@@ -1963,18 +1995,25 @@ function Kairo:CreateWindow(config)
 		task.wait(0.1)
 		UpdateContentSize()
 
-		local sliderFunc = {}
-		sliderFunc.Value = sliderData.Value
+		local sliderFunc = {
+			Value = sliderData.Value,
+			Type = "Slider",
+			Id = elementId
+		}
 		
 		function sliderFunc:Set(value)
 			SetValue(value)
 			sliderFunc.Value = sliderData.Value
 		end
 		
+		if elementId then
+			AllElements[elementId] = sliderFunc
+		end
+		
 		return sliderFunc
 	end
 
-	local function CreateTabButton(tabName, iconId)
+	local function CreateTabButton(tabName, iconId, isConfigTab)
 		TabCount = TabCount + 1
 		
 		local Tab = Instance.new("Frame")
@@ -1983,7 +2022,7 @@ function Kairo:CreateWindow(config)
 		Tab.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		Tab.BorderSizePixel = 0
 		Tab.Size = UDim2.new(1, 0, 0, 30)
-		Tab.LayoutOrder = TabCount
+		Tab.LayoutOrder = isConfigTab and 999 or TabCount
 		Tab.Name = "Tab"
 		Tab.Parent = TabScroll
 
@@ -2055,7 +2094,7 @@ function Kairo:CreateWindow(config)
 		TabContentContainer.BackgroundTransparency = 1
 		TabContentContainer.Size = UDim2.new(1, 0, 0, 0)
 		TabContentContainer.Visible = false
-		TabContentContainer.LayoutOrder = TabCount
+		TabContentContainer.LayoutOrder = isConfigTab and 999 or TabCount
 		TabContentContainer.Name = tabName.."Content"
 		TabContentContainer.Parent = ContentScroll
 		
@@ -2099,13 +2138,112 @@ function Kairo:CreateWindow(config)
 			SwitchToTab()
 		end)
 
-		return TabContentContainer
+		return TabContentContainer, SwitchToTab
 	end
+
+	local ConfigTabContainer, SwitchToConfigTab = CreateTabButton("Configs", "rbxassetid://16932740082", true)
+	
+	CreateParagraph(ConfigTabContainer, "Configuration Settings", "Manage your UI settings and themes here.")
+	
+	local themeNames = {}
+	for themeName, _ in pairs(ConfigSystem.ThemeColors) do
+		table.insert(themeNames, themeName)
+	end
+	
+	local CurrentConfigName = ""
+	
+	local ThemeDropdown = CreateDropdown(ConfigTabContainer, "Theme", "Select UI theme color", themeNames, false, ConfigSystem.CurrentTheme, function(value)
+		local success, themeColor = ConfigSystem:SetTheme(value)
+		if success then
+			MakeNotify({
+				Title = "Theme",
+				Description = "Changed",
+				Content = "Theme changed to " .. value .. "!",
+				Color = themeColor,
+				Delay = 3
+			})
+		end
+	end, "ThemeDropdown")
+	
+	local TransparencyToggle = CreateToggle(ConfigTabContainer, "UI Transparency", "Toggle UI background transparency", false, function(state)
+		if state then
+			TweenService:Create(Main, TweenInfo.new(0.3), {BackgroundTransparency = 0.5}):Play()
+			TweenService:Create(UIStroke, TweenInfo.new(0.3), {Transparency = 0.7}):Play()
+		else
+			TweenService:Create(Main, TweenInfo.new(0.3), {BackgroundTransparency = 0.1}):Play()
+			TweenService:Create(UIStroke, TweenInfo.new(0.3), {Transparency = 0}):Play()
+		end
+	end, "TransparencyToggle")
+	
+	local ConfigNameInput = CreateInput(ConfigTabContainer, "Config Name", "Enter name for your config", "MyConfig", function(value)
+		CurrentConfigName = value
+	end, "ConfigNameInput")
+	
+	CreateButton(ConfigTabContainer, "Save Config", "Save current settings to config", "rbxassetid://16932740082", function()
+		if CurrentConfigName and CurrentConfigName ~= "" then
+			local configData = {}
+			for id, element in pairs(AllElements) do
+				if element.Type == "Toggle" then
+					configData[id] = element.Value
+				elseif element.Type == "Slider" then
+					configData[id] = element.Value
+				elseif element.Type == "Dropdown" then
+					configData[id] = element.Value
+				elseif element.Type == "Input" then
+					configData[id] = element.Value
+				end
+			end
+			
+			local notifyData = ConfigSystem:SaveConfig(CurrentConfigName, configData)
+			MakeNotify(notifyData)
+			
+			local configList = ConfigSystem:GetConfigList()
+			LoadConfigDropdown:Refresh(configList)
+			DeleteConfigDropdown:Refresh(configList)
+		else
+			MakeNotify({
+				Title = "Config",
+				Description = "Error",
+				Content = "Please enter a config name first!",
+				Color = Color3.fromRGB(255, 50, 50),
+				Delay = 3
+			})
+		end
+	end)
+	
+	local LoadConfigDropdown = CreateDropdown(ConfigTabContainer, "Load Config", "Select config to load", {}, false, nil, function(value)
+		if value then
+			local notifyData, configData = ConfigSystem:LoadConfig(value)
+			MakeNotify(notifyData)
+			
+			if configData then
+				for id, val in pairs(configData) do
+					if AllElements[id] then
+						AllElements[id]:Set(val)
+					end
+				end
+				ThemeDropdown:Set(ConfigSystem.CurrentTheme)
+			end
+		end
+	end, "LoadConfigDropdown")
+	
+	local DeleteConfigDropdown = CreateDropdown(ConfigTabContainer, "Delete Config", "Select config to delete", {}, false, nil, function(value)
+		if value then
+			local notifyData = ConfigSystem:DeleteConfig(value)
+			MakeNotify(notifyData)
+			
+			local configList = ConfigSystem:GetConfigList()
+			LoadConfigDropdown:Refresh(configList)
+			DeleteConfigDropdown:Refresh(configList)
+		end
+	end, "DeleteConfigDropdown")
+	
+	CreateParagraph(ConfigTabContainer, "Note", "Configs are saved locally for this session. In a full implementation, they would be saved to DataStore.")
 
 	local Window = {}
 
 	function Window:CreateTab(tabName, iconId)
-		return CreateTabButton(tabName, iconId)
+		return CreateTabButton(tabName, iconId, false)
 	end
 
 	function Window:AddParagraph(tabContainer, title, content)
@@ -2141,18 +2279,41 @@ function Kairo:CreateWindow(config)
 	end
 
 	function Window:SaveConfig(name)
-		local notifyData = ConfigSystem:SaveConfig(name)
+		local configData = {}
+		for id, element in pairs(AllElements) do
+			if element.Type == "Toggle" then
+				configData[id] = element.Value
+			elseif element.Type == "Slider" then
+				configData[id] = element.Value
+			elseif element.Type == "Dropdown" then
+				configData[id] = element.Value
+			elseif element.Type == "Input" then
+				configData[id] = element.Value
+			end
+		end
+		local notifyData = ConfigSystem:SaveConfig(name, configData)
 		MakeNotify(notifyData)
 	end
 
 	function Window:LoadConfig(name)
-		local notifyData = ConfigSystem:LoadConfig(name)
+		local notifyData, configData = ConfigSystem:LoadConfig(name)
 		MakeNotify(notifyData)
+		if configData then
+			for id, val in pairs(configData) do
+				if AllElements[id] then
+					AllElements[id]:Set(val)
+				end
+			end
+		end
 	end
 
 	function Window:DeleteConfig(name)
 		local notifyData = ConfigSystem:DeleteConfig(name)
 		MakeNotify(notifyData)
+	end
+
+	function Window:GetConfigs()
+		return ConfigSystem:GetConfigList()
 	end
 
 	function Window:Destroy()
