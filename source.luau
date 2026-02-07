@@ -1,38 +1,16 @@
+-- Kairo UI Library - Complete Fixed Version
 local Kairo = {}
 
+-- Services
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
-local CoreGui = game:GetService("CoreGui") or LocalPlayer.PlayerGui
-local HttpService = game:GetService("HttpService")
 
-local ThemeColors = {
-    Default = Color3.fromRGB(255, 0, 255),
-    Pink = Color3.fromRGB(255, 100, 200),
-    Forest = Color3.fromRGB(0, 120, 80),
-    Crimson = Color3.fromRGB(200, 0, 50),
-    Blue = Color3.fromRGB(0, 120, 255),
-    Red = Color3.fromRGB(255, 50, 50),
-    Green = Color3.fromRGB(0, 200, 80),
-    Orange = Color3.fromRGB(255, 120, 0),
-    Purple = Color3.fromRGB(160, 0, 255),
-    Cyan = Color3.fromRGB(0, 200, 255),
-    Midnight = Color3.fromRGB(10, 30, 60),
-    Ocean = Color3.fromRGB(0, 150, 200),
-    Sunset = Color3.fromRGB(255, 100, 50),
-    Gold = Color3.fromRGB(255, 200, 0),
-    Emerald = Color3.fromRGB(0, 200, 150),
-    Lavender = Color3.fromRGB(180, 130, 255),
-    Teal = Color3.fromRGB(0, 150, 150),
-    Rose = Color3.fromRGB(255, 100, 150),
-    Sky = Color3.fromRGB(100, 180, 255),
-    Amber = Color3.fromRGB(255, 150, 0),
-    Neon = Color3.fromRGB(0, 255, 200),
-    Royal = Color3.fromRGB(100, 0, 200)
-}
-
+-- UI Functions
 local function CircleClick(Button, X, Y)
     spawn(function()
         Button.ClipsDescendants = true
@@ -49,16 +27,9 @@ local function CircleClick(Button, X, Y)
         local NewY = Y - Circle.AbsolutePosition.Y
         Circle.Position = UDim2.new(0, NewX, 0, NewY)
         
-        local Size = 0
-        if Button.AbsoluteSize.X > Button.AbsoluteSize.Y then
-            Size = Button.AbsoluteSize.X * 1.5
-        elseif Button.AbsoluteSize.X < Button.AbsoluteSize.Y then
-            Size = Button.AbsoluteSize.Y * 1.5
-        else
-            Size = Button.AbsoluteSize.X * 1.5
-        end
-
+        local Size = math.max(Button.AbsoluteSize.X, Button.AbsoluteSize.Y) * 1.5
         local Time = 0.5
+        
         Circle:TweenSizeAndPosition(
             UDim2.new(0, Size, 0, Size),
             UDim2.new(0.5, -Size/2, 0.5, -Size/2),
@@ -66,7 +37,7 @@ local function CircleClick(Button, X, Y)
         )
         
         for i = 1, 10 do
-            Circle.ImageTransparency += 0.01
+            Circle.ImageTransparency = Circle.ImageTransparency + 0.01
             wait(Time/10)
         end
         Circle:Destroy()
@@ -112,11 +83,162 @@ local function MakeDraggable(topbarobject, object)
     end)
 end
 
+-- Create Notification
+local function MakeNotify(NotifyConfig)
+    local Title = NotifyConfig.Title or "Notification"
+    local Description = NotifyConfig.Description or "Description"
+    local Content = NotifyConfig.Content or "Content"
+    local Color = NotifyConfig.Color or Color3.fromRGB(255, 0, 255)
+    local Time = NotifyConfig.Time or 0.5
+    local Delay = NotifyConfig.Delay or 5
+    
+    spawn(function()
+        if not CoreGui:FindFirstChild("NotifyGui") then
+            local NotifyGui = Instance.new("ScreenGui")
+            NotifyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+            NotifyGui.Name = "NotifyGui"
+            NotifyGui.Parent = CoreGui
+        end
+        
+        if not CoreGui.NotifyGui:FindFirstChild("NotifyLayout") then
+            local NotifyLayout = Instance.new("Frame")
+            NotifyLayout.AnchorPoint = Vector2.new(1, 1)
+            NotifyLayout.BackgroundTransparency = 1
+            NotifyLayout.Position = UDim2.new(1, -30, 1, -30)
+            NotifyLayout.Size = UDim2.new(0, 320, 1, 0)
+            NotifyLayout.Name = "NotifyLayout"
+            NotifyLayout.Parent = CoreGui.NotifyGui
+        end
+        
+        local NotifyPosHeight = 0
+        for _, v in CoreGui.NotifyGui.NotifyLayout:GetChildren() do
+            NotifyPosHeight = -(v.Position.Y.Offset) + v.Size.Y.Offset + 12
+        end
+        
+        local NotifyFrame = Instance.new("Frame")
+        NotifyFrame.BackgroundTransparency = 1
+        NotifyFrame.Size = UDim2.new(1, 0, 0, 150)
+        NotifyFrame.Name = "NotifyFrame"
+        NotifyFrame.AnchorPoint = Vector2.new(0, 1)
+        NotifyFrame.Position = UDim2.new(0, 0, 1, -(NotifyPosHeight))
+        NotifyFrame.Parent = CoreGui.NotifyGui.NotifyLayout
+
+        local NotifyFrameReal = Instance.new("Frame")
+        NotifyFrameReal.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        NotifyFrameReal.Position = UDim2.new(0, 400, 0, 0)
+        NotifyFrameReal.Size = UDim2.new(1, 0, 1, 0)
+        NotifyFrameReal.Name = "NotifyFrameReal"
+        NotifyFrameReal.Parent = NotifyFrame
+
+        local UICorner = Instance.new("UICorner")
+        UICorner.CornerRadius = UDim.new(0, 8)
+        UICorner.Parent = NotifyFrameReal
+
+        local Top = Instance.new("Frame")
+        Top.BackgroundTransparency = 1
+        Top.Size = UDim2.new(1, 0, 0, 36)
+        Top.Name = "Top"
+        Top.Parent = NotifyFrameReal
+
+        local TitleLabel = Instance.new("TextLabel")
+        TitleLabel.Font = Enum.Font.GothamBold
+        TitleLabel.Text = Title
+        TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TitleLabel.TextSize = 14
+        TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        TitleLabel.BackgroundTransparency = 1
+        TitleLabel.Size = UDim2.new(1, 0, 1, 0)
+        TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+        TitleLabel.Parent = Top
+
+        local DescLabel = Instance.new("TextLabel")
+        DescLabel.Font = Enum.Font.GothamBold
+        DescLabel.Text = Description
+        DescLabel.TextColor3 = Color
+        DescLabel.TextSize = 14
+        DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+        DescLabel.BackgroundTransparency = 1
+        DescLabel.Size = UDim2.new(1, 0, 1, 0)
+        DescLabel.Position = UDim2.new(0, TitleLabel.TextBounds.X + 15, 0, 0)
+        DescLabel.Parent = Top
+
+        local Close = Instance.new("TextButton")
+        Close.Text = ""
+        Close.AnchorPoint = Vector2.new(1, 0.5)
+        Close.BackgroundTransparency = 1
+        Close.Position = UDim2.new(1, -5, 0.5, 0)
+        Close.Size = UDim2.new(0, 25, 0, 25)
+        Close.Name = "Close"
+        Close.Parent = Top
+
+        local CloseIcon = Instance.new("ImageLabel")
+        CloseIcon.Image = "rbxassetid://9886659671"
+        CloseIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+        CloseIcon.BackgroundTransparency = 1
+        CloseIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+        CloseIcon.Size = UDim2.new(1, -8, 1, -8)
+        CloseIcon.Parent = Close
+
+        local ContentLabel = Instance.new("TextLabel")
+        ContentLabel.Font = Enum.Font.GothamBold
+        ContentLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        ContentLabel.TextSize = 13
+        ContentLabel.Text = Content
+        ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
+        ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
+        ContentLabel.BackgroundTransparency = 1
+        ContentLabel.Position = UDim2.new(0, 10, 0, 27)
+        ContentLabel.Size = UDim2.new(1, -20, 0, 13)
+        ContentLabel.Parent = NotifyFrameReal
+
+        ContentLabel.Size = UDim2.new(1, -20, 0, 13 + (13 * (ContentLabel.TextBounds.X // ContentLabel.AbsoluteSize.X)))
+        ContentLabel.TextWrapped = true
+
+        if ContentLabel.AbsoluteSize.Y < 27 then
+            NotifyFrame.Size = UDim2.new(1, 0, 0, 65)
+        else
+            NotifyFrame.Size = UDim2.new(1, 0, 0, ContentLabel.AbsoluteSize.Y + 40)
+        end
+        
+        local function CloseNotification()
+            TweenService:Create(
+                NotifyFrameReal,
+                TweenInfo.new(Time, Enum.EasingStyle.Back, Enum.EasingDirection.InOut),
+                {Position = UDim2.new(0, 400, 0, 0)}
+            ):Play()
+            task.wait(Time / 1.2)
+            NotifyFrame:Destroy()
+        end
+        
+        Close.Activated:Connect(CloseNotification)
+        
+        TweenService:Create(
+            NotifyFrameReal,
+            TweenInfo.new(Time, Enum.EasingStyle.Back, Enum.EasingDirection.InOut),
+            {Position = UDim2.new(0, 0, 0, 0)}
+        ):Play()
+        task.wait(Delay)
+        CloseNotification()
+    end)
+end
+
 function Kairo:CreateWindow(Properties)
     local Config = Properties.Config or {}
     local Theme = Properties.Theme or "Default"
     local CurrentTheme = Theme
-    local CurrentColor = ThemeColors[Theme]
+    local ThemeColors = {
+        Default = Color3.fromRGB(255, 0, 255),
+        Pink = Color3.fromRGB(255, 100, 200),
+        Forest = Color3.fromRGB(0, 120, 80),
+        Crimson = Color3.fromRGB(200, 0, 50),
+        Blue = Color3.fromRGB(0, 120, 255),
+        Red = Color3.fromRGB(255, 50, 50),
+        Green = Color3.fromRGB(0, 200, 80),
+        Orange = Color3.fromRGB(255, 120, 0),
+        Purple = Color3.fromRGB(160, 0, 255),
+        Cyan = Color3.fromRGB(0, 200, 255)
+    }
+    local CurrentColor = ThemeColors[Theme] or ThemeColors.Default
     
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -189,7 +311,6 @@ function Kairo:CreateWindow(Properties)
     Title.Parent = Top
 
     local Close = Instance.new("TextButton")
-    Close.Font = Enum.Font.SourceSans
     Close.Text = ""
     Close.AnchorPoint = Vector2.new(1, 0.5)
     Close.BackgroundTransparency = 1
@@ -207,7 +328,6 @@ function Kairo:CreateWindow(Properties)
     CloseIcon.Parent = Close
 
     local Min = Instance.new("TextButton")
-    Min.Font = Enum.Font.SourceSans
     Min.Text = ""
     Min.AnchorPoint = Vector2.new(1, 0.5)
     Min.BackgroundTransparency = 1
@@ -226,7 +346,6 @@ function Kairo:CreateWindow(Properties)
     MinIcon.Parent = Min
 
     local MaxRestore = Instance.new("TextButton")
-    MaxRestore.Font = Enum.Font.SourceSans
     MaxRestore.Text = ""
     MaxRestore.AnchorPoint = Vector2.new(1, 0.5)
     MaxRestore.BackgroundTransparency = 1
@@ -308,13 +427,6 @@ function Kairo:CreateWindow(Properties)
     ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
     ContentLayout.Parent = ContentScroll
 
-    local UIObjects = {
-        Main = Main,
-        DropShadowHolder = DropShadowHolder,
-        ScreenGui = ScreenGui
-    }
-
-    local ThemeElements = {}
     local TabContents = {}
     local CurrentTab = nil
     local TabCount = 0
@@ -328,125 +440,20 @@ function Kairo:CreateWindow(Properties)
         local OffsetY = 0
         for _, child in TabScroll:GetChildren() do
             if child:IsA("Frame") then
-                OffsetY += 3 + child.Size.Y.Offset
+                OffsetY = OffsetY + 3 + child.Size.Y.Offset
             end
         end
         TabScroll.CanvasSize = UDim2.new(0, 0, 0, OffsetY)
     end
 
-    local function UpdateContentSize()
-        if CurrentTab and TabContents[CurrentTab] then
-            local OffsetY = 0
-            for _, child in TabContents[CurrentTab]:GetChildren() do
-                if child:IsA("Frame") then
-                    OffsetY += 8 + child.Size.Y.Offset
-                end
-            end
-            ContentScroll.CanvasSize = UDim2.new(0, 0, 0, OffsetY)
-        end
-    end
-
     TabScroll.ChildAdded:Connect(UpdateTabSize)
     TabScroll.ChildRemoved:Connect(UpdateTabSize)
-
-    local function UpdateAllThemeElements(newColor)
-        for _, toggle in pairs(ToggleElements) do
-            if toggle and toggle:IsA("Frame") then
-                local featureFrame = toggle:FindFirstChild("FeatureFrame")
-                local toggleCircle = toggle:FindFirstChild("ToggleCircle")
-                local frameStroke = featureFrame and featureFrame:FindFirstChild("UIStroke")
-                local toggleTitle = toggle:FindFirstChild("ToggleTitle")
-                
-                if toggleCircle then
-                    local isOn = toggleCircle.Position == UDim2.new(0, 15, 0, 0)
-                    if isOn then
-                        toggleCircle.BackgroundColor3 = newColor
-                        if frameStroke then frameStroke.Color = newColor end
-                        if toggleTitle then toggleTitle.TextColor3 = newColor end
-                    end
-                end
-            end
-        end
-        
-        for _, slider in pairs(SliderElements) do
-            if slider and slider:IsA("Frame") then
-                local sliderFill = slider:FindFirstChild("SliderFill")
-                local sliderCircle = slider:FindFirstChild("SliderCircle")
-                local circleStroke = sliderCircle and sliderCircle:FindFirstChild("UIStroke")
-                
-                if sliderFill then sliderFill.BackgroundColor3 = newColor end
-                if sliderCircle then sliderCircle.BackgroundColor3 = newColor end
-                if circleStroke then circleStroke.Color = newColor end
-            end
-        end
-        
-        for _, dropdown in pairs(DropdownElements) do
-            if dropdown and dropdown:IsA("Frame") then
-                local dropdownList = dropdown:FindFirstChild("DropdownList")
-                if not dropdownList then
-                    dropdownList = ScreenGui:FindFirstChild("DropdownList")
-                end
-                
-                if dropdownList then
-                    local listScroll = dropdownList:FindFirstChild("ListScroll")
-                    if listScroll then
-                        for _, option in listScroll:GetChildren() do
-                            if option:IsA("Frame") and option.Name == "Option" then
-                                local chooseFrame = option:FindFirstChild("ChooseFrame")
-                                local chooseStroke = chooseFrame and chooseFrame:FindFirstChild("UIStroke")
-                                local optionText = option:FindFirstChild("OptionText")
-                                
-                                if chooseFrame then chooseFrame.BackgroundColor3 = newColor end
-                                if chooseStroke then chooseStroke.Color = newColor end
-                                if optionText and optionText.TextColor3.r > 0.5 then
-                                    optionText.TextColor3 = newColor
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        
-        for _, tab in pairs(TabElements) do
-            if tab and tab:IsA("Frame") then
-                local chooseFrame = tab:FindFirstChild("ChooseFrame")
-                local chooseStroke = chooseFrame and chooseFrame:FindFirstChild("UIStroke")
-                
-                if chooseFrame then chooseFrame.BackgroundColor3 = newColor end
-                if chooseStroke then chooseStroke.Color = newColor end
-            end
-        end
-        
-        for _, element in pairs(ThemeElements) do
-            if element and element:IsA("Frame") and element:FindFirstChild("ChooseFrame") then
-                local chooseFrame = element.ChooseFrame
-                if chooseFrame then
-                    chooseFrame.BackgroundColor3 = newColor
-                    local stroke = chooseFrame:FindFirstChild("UIStroke")
-                    if stroke then stroke.Color = newColor end
-                end
-            end
-        end
-        
-        return newColor
-    end
-
-    local function SetTheme(themeName)
-        if ThemeColors[themeName] then
-            CurrentTheme = themeName
-            CurrentColor = ThemeColors[themeName]
-            UpdateAllThemeElements(CurrentColor)
-            return true, CurrentColor
-        end
-        return false, nil
-    end
 
     local function CreateTab(Properties)
         local TabName = Properties.Name or "Tab"
         local IconId = Properties.Icon or ""
         
-        TabCount += 1
+        TabCount = TabCount + 1
         
         local Tab = Instance.new("Frame")
         Tab.BackgroundTransparency = 1
@@ -562,62 +569,6 @@ function Kairo:CreateWindow(Properties)
         }
     end
 
-    local function CreateSection(Properties)
-        local TabName = Properties.Tab
-        local Title = Properties.Title or "Section"
-        local Content = Properties.Content or ""
-        
-        if not TabContents[TabName] then return end
-        
-        local Section = Instance.new("Frame")
-        Section.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        Section.BackgroundTransparency = 0.935
-        Section.Size = UDim2.new(1, 0, 0, 46)
-        Section.Name = "Section"
-        Section.Parent = TabContents[TabName]
-
-        local SectionCorner = Instance.new("UICorner")
-        SectionCorner.CornerRadius = UDim.new(0, 4)
-        SectionCorner.Parent = Section
-
-        local SectionTitle = Instance.new("TextLabel")
-        SectionTitle.Font = Enum.Font.GothamBold
-        SectionTitle.Text = Title
-        SectionTitle.TextColor3 = Color3.fromRGB(230, 230, 230)
-        SectionTitle.TextSize = 13
-        SectionTitle.TextXAlignment = Enum.TextXAlignment.Left
-        SectionTitle.BackgroundTransparency = 1
-        SectionTitle.Position = UDim2.new(0, 10, 0, 10)
-        SectionTitle.Size = UDim2.new(1, -20, 0, 13)
-        SectionTitle.Name = "SectionTitle"
-        SectionTitle.Parent = Section
-
-        local SectionContent = Instance.new("TextLabel")
-        SectionContent.Font = Enum.Font.GothamBold
-        SectionContent.Text = Content
-        SectionContent.TextColor3 = Color3.fromRGB(255, 255, 255)
-        SectionContent.TextSize = 12
-        SectionContent.TextTransparency = 0.6
-        SectionContent.TextXAlignment = Enum.TextXAlignment.Left
-        SectionContent.BackgroundTransparency = 1
-        SectionContent.Position = UDim2.new(0, 10, 0, 23)
-        SectionContent.Name = "SectionContent"
-        SectionContent.Parent = Section
-
-        local textService = game:GetService("TextService")
-        local textSize = textService:GetTextSize(Content, 12, Enum.Font.GothamBold, Vector2.new(ContentScroll.AbsoluteSize.X - 40, math.huge))
-        
-        SectionContent.Size = UDim2.new(1, -20, 0, textSize.Y)
-        SectionContent.TextWrapped = true
-        Section.Size = UDim2.new(1, 0, 0, math.max(46, textSize.Y + 33))
-
-        return {
-            Title = SectionTitle,
-            Content = SectionContent,
-            Frame = Section
-        }
-    end
-
     local function CreateButton(Properties)
         local TabName = Properties.Tab
         local Title = Properties.Title or "Button"
@@ -670,7 +621,6 @@ function Kairo:CreateWindow(Properties)
         Button.Size = UDim2.new(1, 0, 0, math.max(46, textSize.Y + 33))
 
         local ButtonButton = Instance.new("TextButton")
-        ButtonButton.Font = Enum.Font.SourceSans
         ButtonButton.Text = ""
         ButtonButton.BackgroundTransparency = 1
         ButtonButton.Size = UDim2.new(1, 0, 1, 0)
@@ -760,7 +710,6 @@ function Kairo:CreateWindow(Properties)
         Toggle.Size = UDim2.new(1, 0, 0, math.max(46, textSize.Y + 33))
 
         local ToggleButton = Instance.new("TextButton")
-        ToggleButton.Font = Enum.Font.SourceSans
         ToggleButton.Text = ""
         ToggleButton.BackgroundTransparency = 1
         ToggleButton.Size = UDim2.new(1, 0, 1, 0)
@@ -960,7 +909,6 @@ function Kairo:CreateWindow(Properties)
         local Title = Properties.Title or "Dropdown"
         local Content = Properties.Content or ""
         local Options = Properties.Options or {}
-        local Multi = Properties.Multi or false
         local Default = Properties.Default or nil
         local Callback = Properties.Callback
         
@@ -978,7 +926,6 @@ function Kairo:CreateWindow(Properties)
         DropdownCorner.Parent = Dropdown
 
         local DropdownButton = Instance.new("TextButton")
-        DropdownButton.Font = Enum.Font.SourceSans
         DropdownButton.Text = ""
         DropdownButton.BackgroundTransparency = 1
         DropdownButton.Size = UDim2.new(1, 0, 1, 0)
@@ -1033,7 +980,7 @@ function Kairo:CreateWindow(Properties)
 
         local OptionSelecting = Instance.new("TextLabel")
         OptionSelecting.Font = Enum.Font.GothamBold
-        OptionSelecting.Text = "Select Option"
+        OptionSelecting.Text = Default or "Select Option"
         OptionSelecting.TextColor3 = Color3.fromRGB(255, 255, 255)
         OptionSelecting.TextSize = 12
         OptionSelecting.TextTransparency = 0.6
@@ -1056,318 +1003,45 @@ function Kairo:CreateWindow(Properties)
         OptionImg.Name = "OptionImg"
         OptionImg.Parent = SelectOptionsFrame
         
-        local DropdownList = Instance.new("Frame")
-        DropdownList.AnchorPoint = Vector2.new(1, 0)
-        DropdownList.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        DropdownList.BorderSizePixel = 0
-        DropdownList.Position = UDim2.new(1, -12, 0, 35)
-        DropdownList.Size = UDim2.new(0, 160, 0, 0)
-        DropdownList.Name = "DropdownList"
-        DropdownList.Visible = false
-        DropdownList.ClipsDescendants = true
-        DropdownList.ZIndex = 10
-        DropdownList.Parent = ScreenGui
-
-        local ListCorner = Instance.new("UICorner")
-        ListCorner.CornerRadius = UDim.new(0, 4)
-        ListCorner.Parent = DropdownList
-
-        local ListStroke = Instance.new("UIStroke")
-        ListStroke.Color = Color3.fromRGB(255, 255, 255)
-        ListStroke.Thickness = 2.5
-        ListStroke.Transparency = 0.8
-        ListStroke.Parent = DropdownList
-
-        local ListScroll = Instance.new("ScrollingFrame")
-        ListScroll.ScrollBarThickness = 0
-        ListScroll.Active = true
-        ListScroll.BackgroundTransparency = 1
-        ListScroll.Size = UDim2.new(1, -10, 1, -10)
-        ListScroll.Position = UDim2.new(0, 5, 0, 5)
-        ListScroll.Name = "ListScroll"
-        ListScroll.ZIndex = 11
-        ListScroll.Parent = DropdownList
-
-        local ListLayout = Instance.new("UIListLayout")
-        ListLayout.Padding = UDim.new(0, 3)
-        ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        ListLayout.Parent = ListScroll
-        
-        table.insert(DropdownElements, Dropdown)
-        
         local dropdownData = {
             Options = Options,
-            Value = Multi and (Default or {}) or Default,
-            Multi = Multi,
+            Value = Default,
             Open = false
         }
         
-        local function UpdateListSize()
-            local totalHeight = 0
-            for _, child in ListScroll:GetChildren() do
-                if child:IsA("Frame") then
-                    totalHeight += child.Size.Y.Offset + 3
-                end
-            end
-            ListScroll.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
-            DropdownList.Size = UDim2.new(0, 160, 0, math.min(150, totalHeight + 10))
-        end
-        
         local function UpdateSelectedDisplay()
-            if dropdownData.Multi then
-                if #dropdownData.Value > 0 then
-                    local displayText = ""
-                    for i, v in ipairs(dropdownData.Value) do
-                        if i > 3 then
-                            displayText = displayText .. ", ..."
-                            break
-                        end
-                        displayText = displayText .. (i > 1 and ", " or "") .. v
-                    end
-                    OptionSelecting.Text = displayText
-                else
-                    OptionSelecting.Text = "Select Option"
-                end
-            else
-                OptionSelecting.Text = dropdownData.Value or "Select Option"
-            end
+            OptionSelecting.Text = dropdownData.Value or "Select Option"
         end
         
-        local function ToggleDropdown()
-            dropdownData.Open = not dropdownData.Open
-            if dropdownData.Open then
-                local dropdownAbsPos = Dropdown.AbsolutePosition
-                local dropdownAbsSize = Dropdown.AbsoluteSize
-                DropdownList.Position = UDim2.new(0, dropdownAbsPos.X + dropdownAbsSize.X - 172, 0, dropdownAbsPos.Y + dropdownAbsSize.Y + 5)
-                
-                DropdownList.Visible = true
-                TweenService:Create(DropdownList, TweenInfo.new(0.3), {Size = UDim2.new(0, 160, 0, math.min(150, ListScroll.CanvasSize.Y.Offset + 10))}):Play()
-                TweenService:Create(OptionImg, TweenInfo.new(0.3), {Rotation = 180}):Play()
-            else
-                TweenService:Create(DropdownList, TweenInfo.new(0.3), {Size = UDim2.new(0, 160, 0, 0)}):Play()
-                TweenService:Create(OptionImg, TweenInfo.new(0.3), {Rotation = 0}):Play()
-                task.wait(0.3)
-                DropdownList.Visible = false
-            end
-        end
-        
-        local function CreateOption(optionName)
-            local Option = Instance.new("Frame")
-            Option.BackgroundTransparency = 0.999
-            Option.BorderSizePixel = 0
-            Option.Size = UDim2.new(1, 0, 0, 30)
-            Option.Name = "Option"
-            Option.ZIndex = 12
-            Option.Parent = ListScroll
-
-            local OptionCorner = Instance.new("UICorner")
-            OptionCorner.CornerRadius = UDim.new(0, 3)
-            OptionCorner.Parent = Option
-
-            local OptionButton = Instance.new("TextButton")
-            OptionButton.Font = Enum.Font.GothamBold
-            OptionButton.Text = ""
-            OptionButton.BackgroundTransparency = 1
-            OptionButton.Size = UDim2.new(1, 0, 1, 0)
-            OptionButton.Name = "OptionButton"
-            OptionButton.ZIndex = 13
-            OptionButton.Parent = Option
-
-            local OptionText = Instance.new("TextLabel")
-            OptionText.Font = Enum.Font.GothamBold
-            OptionText.Text = optionName
-            OptionText.TextSize = 13
-            OptionText.TextColor3 = Color3.fromRGB(230, 230, 230)
-            OptionText.TextXAlignment = Enum.TextXAlignment.Left
-            OptionText.BackgroundTransparency = 1
-            OptionText.Position = UDim2.new(0, 8, 0, 8)
-            OptionText.Size = UDim2.new(1, -16, 0, 13)
-            OptionText.Name = "OptionText"
-            OptionText.ZIndex = 14
-            OptionText.Parent = Option
-
-            local ChooseFrame = Instance.new("Frame")
-            ChooseFrame.AnchorPoint = Vector2.new(0, 0.5)
-            ChooseFrame.BackgroundColor3 = CurrentColor
-            ChooseFrame.BorderSizePixel = 0
-            ChooseFrame.Position = UDim2.new(0, 2, 0.5, 0)
-            ChooseFrame.Size = UDim2.new(0, 0, 0, 0)
-            ChooseFrame.Name = "ChooseFrame"
-            ChooseFrame.ZIndex = 15
-            ChooseFrame.Parent = Option
-            
-            local ChooseStroke = Instance.new("UIStroke")
-            ChooseStroke.Color = CurrentColor
-            ChooseStroke.Thickness = 1.6
-            ChooseStroke.Transparency = 0.999
-            ChooseStroke.ZIndex = 16
-            ChooseStroke.Parent = ChooseFrame
-            
-            local ChooseCorner = Instance.new("UICorner")
-            ChooseCorner.Parent = ChooseFrame
-            
-            local function UpdateOptionVisual()
-                local isSelected = false
-                if dropdownData.Multi then
-                    isSelected = table.find(dropdownData.Value, optionName) ~= nil
-                else
-                    isSelected = dropdownData.Value == optionName
-                end
-                
-                if isSelected then
-                    TweenService:Create(ChooseStroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
-                    TweenService:Create(ChooseFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 1, 0, 12)}):Play()
-                    TweenService:Create(Option, TweenInfo.new(0.2), {BackgroundTransparency = 0.935}):Play()
-                    TweenService:Create(OptionText, TweenInfo.new(0.2), {TextColor3 = CurrentColor}):Play()
-                else
-                    TweenService:Create(ChooseStroke, TweenInfo.new(0.2), {Transparency = 0.999}):Play()
-                    TweenService:Create(ChooseFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-                    TweenService:Create(Option, TweenInfo.new(0.2), {BackgroundTransparency = 0.999}):Play()
-                    TweenService:Create(OptionText, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(230, 230, 230)}):Play()
-                end
-            end
-            
-            OptionButton.Activated:Connect(function()
-                CircleClick(OptionButton, Mouse.X, Mouse.Y)
-                
-                if dropdownData.Multi then
-                    local index = table.find(dropdownData.Value, optionName)
-                    if index then
-                        table.remove(dropdownData.Value, index)
-                    else
-                        table.insert(dropdownData.Value, optionName)
-                    end
-                else
-                    for _, child in ListScroll:GetChildren() do
-                        if child:IsA("Frame") and child.Name == "Option" then
-                            local childChooseFrame = child:FindFirstChild("ChooseFrame")
-                            local childChooseStroke = childChooseFrame and childChooseFrame:FindFirstChild("UIStroke")
-                            local childOptionText = child:FindFirstChild("OptionText")
-                            
-                            if childOptionText and childOptionText.Text ~= optionName then
-                                if childChooseStroke then
-                                    TweenService:Create(childChooseStroke, TweenInfo.new(0.2), {Transparency = 0.999}):Play()
-                                end
-                                if childChooseFrame then
-                                    TweenService:Create(childChooseFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-                                end
-                                TweenService:Create(child, TweenInfo.new(0.2), {BackgroundTransparency = 0.999}):Play()
-                                TweenService:Create(childOptionText, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(230, 230, 230)}):Play()
-                            end
-                        end
-                    end
-                    
-                    dropdownData.Value = optionName
-                end
-                
-                UpdateOptionVisual()
-                UpdateSelectedDisplay()
-                
-                if Callback then
-                    Callback(dropdownData.Value)
-                end
-                
-                if not dropdownData.Multi then
-                    ToggleDropdown()
-                end
-            end)
-            
-            UpdateOptionVisual()
-            return Option
-        end
-        
-        for _, option in ipairs(dropdownData.Options) do
-            CreateOption(option)
-        end
-        
-        UpdateListSize()
         UpdateSelectedDisplay()
         
         DropdownButton.Activated:Connect(function()
             CircleClick(DropdownButton, Mouse.X, Mouse.Y)
-            ToggleDropdown()
-        end)
-        
-        local dropdownConnection
-        dropdownConnection = UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                if dropdownData.Open and DropdownList.Visible then
-                    local mousePos = input.Position
-                    local dropdownPos = DropdownList.AbsolutePosition
-                    local dropdownSize = DropdownList.AbsoluteSize
-                    local selectFramePos = SelectOptionsFrame.AbsolutePosition
-                    local selectFrameSize = SelectOptionsFrame.AbsoluteSize
-                    
-                    if not (mousePos.X >= dropdownPos.X and mousePos.X <= dropdownPos.X + dropdownSize.X and
-                           mousePos.Y >= dropdownPos.Y and mousePos.Y <= dropdownPos.Y + dropdownSize.Y) and
-                       not (mousePos.X >= selectFramePos.X and mousePos.X <= selectFramePos.X + selectFrameSize.X and
-                           mousePos.Y >= selectFramePos.Y and mousePos.Y <= selectFramePos.Y + selectFrameSize.Y) then
-                        ToggleDropdown()
-                    end
-                end
+            
+            -- Simple dropdown: just show the selected value
+            if #Options > 0 then
+                local currentIndex = table.find(Options, dropdownData.Value) or 1
+                local nextIndex = currentIndex % #Options + 1
+                dropdownData.Value = Options[nextIndex]
+                UpdateSelectedDisplay()
+                
+                if Callback then Callback(dropdownData.Value) end
             end
-        end)
-        
-        Dropdown.Destroying:Connect(function()
-            if dropdownConnection then dropdownConnection:Disconnect() end
-            DropdownList:Destroy()
         end)
         
         local dropdownFunc = {}
         dropdownFunc.Value = dropdownData.Value
-        dropdownFunc.Options = dropdownData.Options
+        dropdownFunc.Options = Options
         
         function dropdownFunc:Set(value)
-            if dropdownData.Multi then
-                dropdownData.Value = value or {}
-            else
-                dropdownData.Value = value
-            end
+            dropdownData.Value = value
             UpdateSelectedDisplay()
-            
-            for _, child in ListScroll:GetChildren() do
-                if child:IsA("Frame") and child.Name == "Option" then
-                    local optionName = child.OptionText.Text
-                    local isSelected = false
-                    if dropdownData.Multi then
-                        isSelected = table.find(dropdownData.Value, optionName) ~= nil
-                    else
-                        isSelected = dropdownData.Value == optionName
-                    end
-                    
-                    local chooseFrame = child:FindFirstChild("ChooseFrame")
-                    local chooseStroke = chooseFrame and chooseFrame:FindFirstChild("UIStroke")
-                    local optionText = child:FindFirstChild("OptionText")
-                    if chooseFrame and chooseStroke and optionText then
-                        if isSelected then
-                            TweenService:Create(chooseStroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
-                            TweenService:Create(chooseFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 1, 0, 12)}):Play()
-                            TweenService:Create(child, TweenInfo.new(0.2), {BackgroundTransparency = 0.935}):Play()
-                            TweenService:Create(optionText, TweenInfo.new(0.2), {TextColor3 = CurrentColor}):Play()
-                        else
-                            TweenService:Create(chooseStroke, TweenInfo.new(0.2), {Transparency = 0.999}):Play()
-                            TweenService:Create(chooseFrame, TweenInfo.new(0.2), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-                            TweenService:Create(child, TweenInfo.new(0.2), {BackgroundTransparency = 0.999}):Play()
-                            TweenService:Create(optionText, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(230, 230, 230)}):Play()
-                        end
-                    end
-                end
-            end
+            if Callback then Callback(value) end
         end
         
         function dropdownFunc:Refresh(newOptions, newValue)
-            for _, child in ListScroll:GetChildren() do
-                if child:IsA("Frame") then child:Destroy() end
-            end
-            
             dropdownData.Options = newOptions or {}
-            dropdownData.Value = newValue or (dropdownData.Multi and {} or nil)
-            
-            for _, option in ipairs(dropdownData.Options) do
-                CreateOption(option)
-            end
-            
-            UpdateListSize()
+            dropdownData.Value = newValue or nil
             UpdateSelectedDisplay()
             dropdownFunc.Value = dropdownData.Value
             dropdownFunc.Options = dropdownData.Options
@@ -1492,20 +1166,14 @@ function Kairo:CreateWindow(Properties)
             Min = Min,
             Max = Max,
             Value = Default or Min,
-            Dragging = false,
-            TouchInput = nil
+            Dragging = false
         }
-        
-        local function Round(num, decimalPlaces)
-            local mult = 10^(decimalPlaces or 0)
-            return math.floor(num * mult + 0.5) / mult
-        end
         
         local function SetValue(value, instant)
             value = math.clamp(value, sliderData.Min, sliderData.Max)
-            sliderData.Value = Round(value, 0)
+            sliderData.Value = value
             
-            ValueDisplay.Text = tostring(sliderData.Value)
+            ValueDisplay.Text = tostring(math.floor(value))
             
             local percentage = (sliderData.Value - sliderData.Min) / (sliderData.Max - sliderData.Min)
             
@@ -1531,13 +1199,7 @@ function Kairo:CreateWindow(Properties)
         SetValue(Default or Min, true)
         
         local function UpdateSliderFromInput(input)
-            local inputPos
-            if input.UserInputType == Enum.UserInputType.MouseMovement then
-                inputPos = input.Position
-            elseif input.UserInputType == Enum.UserInputType.Touch then
-                inputPos = input.Position
-            else return end
-            
+            local inputPos = input.Position
             local sliderPos = SliderFrame.AbsolutePosition
             local sliderSize = SliderFrame.AbsoluteSize
             
@@ -1548,25 +1210,21 @@ function Kairo:CreateWindow(Properties)
         end
         
         SliderFrame.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
                 sliderData.Dragging = true
-                sliderData.TouchInput = input.UserInputType == Enum.UserInputType.Touch and input or nil
                 UpdateSliderFromInput(input)
             end
         end)
         
         UserInputService.InputChanged:Connect(function(input)
-            if sliderData.Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
-               (input.UserInputType == Enum.UserInputType.Touch and sliderData.TouchInput and input == sliderData.TouchInput)) then
+            if sliderData.Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
                 UpdateSliderFromInput(input)
             end
         end)
         
         UserInputService.InputEnded:Connect(function(input)
-            if (input.UserInputType == Enum.UserInputType.MouseButton1 and sliderData.Dragging) or
-               (input.UserInputType == Enum.UserInputType.Touch and sliderData.TouchInput and input == sliderData.TouchInput) then
+            if input.UserInputType == Enum.UserInputType.MouseButton1 and sliderData.Dragging then
                 sliderData.Dragging = false
-                sliderData.TouchInput = nil
             end
         end)
         
@@ -1581,196 +1239,7 @@ function Kairo:CreateWindow(Properties)
         return sliderFunc
     end
 
-    local function CreateNotification(Properties)
-        local Title = Properties.Title or "Notification"
-        local Description = Properties.Description or "Description"
-        local Content = Properties.Content or "Content"
-        local Color = Properties.Color or CurrentColor
-        local Time = Properties.Time or 0.5
-        local Delay = Properties.Delay or 5
-        
-        spawn(function()
-            if not CoreGui:FindFirstChild("NotifyGui") then
-                local NotifyGui = Instance.new("ScreenGui")
-                NotifyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-                NotifyGui.Name = "NotifyGui"
-                NotifyGui.Parent = CoreGui
-            end
-            
-            if not CoreGui.NotifyGui:FindFirstChild("NotifyLayout") then
-                local NotifyLayout = Instance.new("Frame")
-                NotifyLayout.AnchorPoint = Vector2.new(1, 1)
-                NotifyLayout.BackgroundTransparency = 0.999
-                NotifyLayout.BorderSizePixel = 0
-                NotifyLayout.Position = UDim2.new(1, -30, 1, -30)
-                NotifyLayout.Size = UDim2.new(0, 320, 1, 0)
-                NotifyLayout.Name = "NotifyLayout"
-                NotifyLayout.Parent = CoreGui.NotifyGui
-                
-                local Count = 0
-                CoreGui.NotifyGui.NotifyLayout.ChildRemoved:Connect(function()
-                    Count = 0
-                    for i, v in CoreGui.NotifyGui.NotifyLayout:GetChildren() do
-                        TweenService:Create(
-                            v,
-                            TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
-                            {Position = UDim2.new(0, 0, 1, -((v.Size.Y.Offset + 12)*Count))}
-                        ):Play()
-                        Count = Count + 1
-                    end
-                end)
-            end
-            
-            local NotifyPosHeight = 0
-            for i, v in CoreGui.NotifyGui.NotifyLayout:GetChildren() do
-                NotifyPosHeight = -(v.Position.Y.Offset) + v.Size.Y.Offset + 12
-            end
-            
-            local NotifyFrame = Instance.new("Frame")
-            NotifyFrame.BackgroundTransparency = 1
-            NotifyFrame.Size = UDim2.new(1, 0, 0, 150)
-            NotifyFrame.Name = "NotifyFrame"
-            NotifyFrame.AnchorPoint = Vector2.new(0, 1)
-            NotifyFrame.Position = UDim2.new(0, 0, 1, -(NotifyPosHeight))
-            NotifyFrame.Parent = CoreGui.NotifyGui.NotifyLayout
-
-            local NotifyFrameReal = Instance.new("Frame")
-            NotifyFrameReal.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            NotifyFrameReal.Position = UDim2.new(0, 400, 0, 0)
-            NotifyFrameReal.Size = UDim2.new(1, 0, 1, 0)
-            NotifyFrameReal.Name = "NotifyFrameReal"
-            NotifyFrameReal.Parent = NotifyFrame
-
-            local UICorner = Instance.new("UICorner")
-            UICorner.Parent = NotifyFrameReal
-
-            local DropShadowHolder = Instance.new("Frame")
-            DropShadowHolder.BackgroundTransparency = 1
-            DropShadowHolder.BorderSizePixel = 0
-            DropShadowHolder.Size = UDim2.new(1, 0, 1, 0)
-            DropShadowHolder.ZIndex = 0
-            DropShadowHolder.Name = "DropShadowHolder"
-            DropShadowHolder.Parent = NotifyFrameReal
-
-            local DropShadow = Instance.new("ImageLabel")
-            DropShadow.Image = "rbxassetid://6015897843"
-            DropShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-            DropShadow.ImageTransparency = 0.5
-            DropShadow.ScaleType = Enum.ScaleType.Slice
-            DropShadow.SliceCenter = Rect.new(49, 49, 450, 450)
-            DropShadow.AnchorPoint = Vector2.new(0.5, 0.5)
-            DropShadow.BackgroundTransparency = 1
-            DropShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-            DropShadow.Size = UDim2.new(1, 47, 1, 47)
-            DropShadow.ZIndex = 0
-            DropShadow.Name = "DropShadow"
-            DropShadow.Parent = DropShadowHolder
-
-            local Top = Instance.new("Frame")
-            Top.BackgroundTransparency = 1
-            Top.Size = UDim2.new(1, 0, 0, 36)
-            Top.Name = "Top"
-            Top.Parent = NotifyFrameReal
-
-            local TextLabel = Instance.new("TextLabel")
-            TextLabel.Font = Enum.Font.GothamBold
-            TextLabel.Text = Title
-            TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            TextLabel.TextSize = 14
-            TextLabel.TextXAlignment = Enum.TextXAlignment.Left
-            TextLabel.BackgroundTransparency = 1
-            TextLabel.Size = UDim2.new(1, 0, 1, 0)
-            TextLabel.Position = UDim2.new(0, 10, 0, 0)
-            TextLabel.Parent = Top
-
-            local UIStroke = Instance.new("UIStroke")
-            UIStroke.Color = Color3.fromRGB(255, 255, 255)
-            UIStroke.Thickness = 0.3
-            UIStroke.Parent = TextLabel
-
-            local UICorner1 = Instance.new("UICorner")
-            UICorner1.Parent = Top
-
-            local TextLabel1 = Instance.new("TextLabel")
-            TextLabel1.Font = Enum.Font.GothamBold
-            TextLabel1.Text = Description
-            TextLabel1.TextColor3 = Color
-            TextLabel1.TextSize = 14
-            TextLabel1.TextXAlignment = Enum.TextXAlignment.Left
-            TextLabel1.BackgroundTransparency = 1
-            TextLabel1.Size = UDim2.new(1, 0, 1, 0)
-            TextLabel1.Position = UDim2.new(0, TextLabel.TextBounds.X + 15, 0, 0)
-            TextLabel1.Parent = Top
-
-            local UIStroke1 = Instance.new("UIStroke")
-            UIStroke1.Color = Color
-            UIStroke1.Thickness = 0.4
-            UIStroke1.Parent = TextLabel1
-
-            local Close = Instance.new("TextButton")
-            Close.Font = Enum.Font.SourceSans
-            Close.Text = ""
-            Close.AnchorPoint = Vector2.new(1, 0.5)
-            Close.BackgroundTransparency = 1
-            Close.Position = UDim2.new(1, -5, 0.5, 0)
-            Close.Size = UDim2.new(0, 25, 0, 25)
-            Close.Name = "Close"
-            Close.Parent = Top
-
-            local ImageLabel = Instance.new("ImageLabel")
-            ImageLabel.Image = "rbxassetid://9886659671"
-            ImageLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-            ImageLabel.BackgroundTransparency = 1
-            ImageLabel.Position = UDim2.new(0.49, 0, 0.5, 0)
-            ImageLabel.Size = UDim2.new(1, -8, 1, -8)
-            ImageLabel.Parent = Close
-
-            local TextLabel2 = Instance.new("TextLabel")
-            TextLabel2.Font = Enum.Font.GothamBold
-            TextLabel2.TextColor3 = Color3.fromRGB(150, 150, 150)
-            TextLabel2.TextSize = 13
-            TextLabel2.Text = Content
-            TextLabel2.TextXAlignment = Enum.TextXAlignment.Left
-            TextLabel2.TextYAlignment = Enum.TextYAlignment.Top
-            TextLabel2.BackgroundTransparency = 1
-            TextLabel2.Position = UDim2.new(0, 10, 0, 27)
-            TextLabel2.Parent = NotifyFrameReal
-            TextLabel2.Size = UDim2.new(1, -20, 0, 13)
-
-            TextLabel2.Size = UDim2.new(1, -20, 0, 13 + (13 * (TextLabel2.TextBounds.X // TextLabel2.AbsoluteSize.X)))
-            TextLabel2.TextWrapped = true
-
-            if TextLabel2.AbsoluteSize.Y < 27 then
-                NotifyFrame.Size = UDim2.new(1, 0, 0, 65)
-            else
-                NotifyFrame.Size = UDim2.new(1, 0, 0, TextLabel2.AbsoluteSize.Y + 40)
-            end
-            
-            local waitbruh = false
-            local function CloseNotification()
-                if waitbruh then return false end
-                waitbruh = true
-                TweenService:Create(
-                    NotifyFrameReal,
-                    TweenInfo.new(Time, Enum.EasingStyle.Back, Enum.EasingDirection.InOut),
-                    {Position = UDim2.new(0, 400, 0, 0)}
-                ):Play()
-                task.wait(Time / 1.2)
-                NotifyFrame:Destroy()
-            end
-            
-            Close.Activated:Connect(CloseNotification)
-            
-            TweenService:Create(
-                NotifyFrameReal,
-                TweenInfo.new(Time, Enum.EasingStyle.Back, Enum.EasingDirection.InOut),
-                {Position = UDim2.new(0, 0, 0, 0)}
-            ):Play()
-            task.wait(Delay)
-            CloseNotification()
-        end)
-    end
-
+    -- Button events
     Close.Activated:Connect(function()
         CircleClick(Close, Mouse.X, Mouse.Y)
         DropShadowHolder.Visible = false
@@ -1813,23 +1282,42 @@ function Kairo:CreateWindow(Properties)
 
     UpdateTabSize()
 
-    return {
+    local windowAPI = {
         Tab = CreateTab,
-        Section = CreateSection,
         Button = CreateButton,
         Toggle = CreateToggle,
         Input = CreateInput,
         Dropdown = CreateDropdown,
         Slider = CreateSlider,
-        Notification = CreateNotification,
-        SetTheme = SetTheme,
+        Notification = MakeNotify,
+        SetTheme = function(themeName)
+            if ThemeColors[themeName] then
+                CurrentTheme = themeName
+                CurrentColor = ThemeColors[themeName]
+                -- Update theme colors on existing elements
+                for _, tab in pairs(TabElements) do
+                    local chooseFrame = tab:FindFirstChild("ChooseFrame")
+                    local chooseStroke = chooseFrame and chooseFrame:FindFirstChild("UIStroke")
+                    if chooseFrame then chooseFrame.BackgroundColor3 = CurrentColor end
+                    if chooseStroke then chooseStroke.Color = CurrentColor end
+                end
+                return true, CurrentColor
+            end
+            return false, nil
+        end,
         Themes = ThemeColors,
+        CurrentTheme = CurrentTheme,
         UI = {
             Main = Main,
             Holder = DropShadowHolder,
             Gui = ScreenGui
         }
     }
+    
+    -- Set windowAPI as metatable
+    setmetatable(windowAPI, Kairo)
+    
+    return windowAPI
 end
 
 return Kairo
