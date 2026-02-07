@@ -1,4 +1,4 @@
--- Kairo UI Library - Complete Fixed Version
+-- Kairo UI Library
 local Kairo = {}
 
 -- Services
