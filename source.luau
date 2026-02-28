@@ -83,6 +83,76 @@ local function MakeDraggable(topbarobject, object)
 	end)
 end
 
+-- New function for draggable mobile button with boundary constraints
+local function MakeDraggableMobileButton(button, object, screenGui)
+	local Dragging = false
+	local DragInput = nil
+	local DragStart = nil
+	local StartPosition = nil
+	local ClickStartTime = 0
+	local ClickStartPos = nil
+
+	local function UpdatePos(input)
+		local Delta = input.Position - DragStart
+		local newX = StartPosition.X.Offset + Delta.X
+		local newY = StartPosition.Y.Offset + Delta.Y
+		
+		-- Get screen size
+		local screenSize = screenGui.AbsoluteSize
+		local buttonSize = object.AbsoluteSize
+		
+		-- Constrain to screen bounds with padding
+		local padding = 10
+		newX = math.clamp(newX, padding, screenSize.X - buttonSize.X - padding)
+		newY = math.clamp(newY, padding, screenSize.Y - buttonSize.Y - padding)
+		
+		object.Position = UDim2.new(0, newX, 0, newY)
+	end
+
+	button.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			Dragging = false
+			ClickStartTime = tick()
+			ClickStartPos = input.Position
+			DragStart = input.Position
+			StartPosition = object.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					local dragTime = tick() - ClickStartTime
+					local dragDistance = (input.Position - ClickStartPos).Magnitude
+					
+					-- If short click and minimal movement, treat as click
+					if dragTime < 0.2 and dragDistance < 5 then
+						-- This is a click, not a drag
+					end
+					Dragging = false
+				end
+			end)
+		end
+	end)
+
+	button.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			if not Dragging then
+				local dragDistance = (input.Position - ClickStartPos).Magnitude
+				if dragDistance > 5 then
+					Dragging = true
+				end
+			end
+			DragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == DragInput and Dragging then
+			UpdatePos(input)
+		end
+	end)
+	
+	return function() return Dragging end
+end
+
 local ConfigSystem = {
 	CurrentConfig = nil,
 	Configs = {},
@@ -546,6 +616,8 @@ function Kairo:CreateWindow(config)
 	local Center = config.Center ~= false
 	local Draggable = config.Draggable ~= false
 	local MinimizeKey = config.MinimizeKey or Enum.KeyCode.RightShift
+	local MinimizeButton = config.MinimizeButton or false
+	local MinimizeButtonImage = config.MinimizeButton_Image or "rbxassetid://16932740082"
 	local ConfigData = config.Config or {}
 	
 	if ConfigSystem.ThemeColors[Theme] then
@@ -852,6 +924,74 @@ function Kairo:CreateWindow(config)
 
 	if Draggable then
 		MakeDraggable(Top, DropShadowHolder)
+	end
+
+	-- Create Mobile Minimize Button
+	local MobileMinimizeButton = nil
+	if MinimizeButton then
+		MobileMinimizeButton = Instance.new("Frame")
+		MobileMinimizeButton.Name = "MobileMinimizeButton"
+		MobileMinimizeButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+		MobileMinimizeButton.BackgroundTransparency = 0.2
+		MobileMinimizeButton.BorderSizePixel = 0
+		MobileMinimizeButton.Size = UDim2.new(0, 50, 0, 50)
+		MobileMinimizeButton.Position = UDim2.new(0, 20, 0, 100)
+		MobileMinimizeButton.ZIndex = 100
+		MobileMinimizeButton.Parent = ScreenGui
+		
+		local ButtonCorner = Instance.new("UICorner")
+		ButtonCorner.CornerRadius = UDim.new(1, 0)
+		ButtonCorner.Parent = MobileMinimizeButton
+		
+		local ButtonStroke = Instance.new("UIStroke")
+		ButtonStroke.Color = ConfigSystem.ThemeColors[ConfigSystem.CurrentTheme]
+		ButtonStroke.Thickness = 2
+		ButtonStroke.Parent = MobileMinimizeButton
+		
+		local ButtonImage = Instance.new("ImageLabel")
+		ButtonImage.Name = "ButtonImage"
+		ButtonImage.Image = MinimizeButtonImage
+		ButtonImage.BackgroundTransparency = 1
+		ButtonImage.Size = UDim2.new(0.7, 0, 0.7, 0)
+		ButtonImage.Position = UDim2.new(0.15, 0, 0.15, 0)
+		ButtonImage.ZIndex = 101
+		ButtonImage.Parent = MobileMinimizeButton
+		
+		local ClickDetector = Instance.new("TextButton")
+		ClickDetector.Name = "ClickDetector"
+		ClickDetector.Text = ""
+		ClickDetector.BackgroundTransparency = 1
+		ClickDetector.Size = UDim2.new(1, 0, 1, 0)
+		ClickDetector.ZIndex = 102
+		ClickDetector.Parent = MobileMinimizeButton
+		
+		-- Make it draggable
+		local isDragging = MakeDraggableMobileButton(ClickDetector, MobileMinimizeButton, ScreenGui)
+		
+		-- Click functionality with debounce
+		local lastClick = 0
+		ClickDetector.Activated:Connect(function()
+			local now = tick()
+			if now - lastClick < 0.3 then return end
+			lastClick = now
+			
+			-- Only toggle if not dragging
+			if not isDragging() then
+				DropShadowHolder.Visible = not DropShadowHolder.Visible
+				
+				-- Visual feedback
+				TweenService:Create(MobileMinimizeButton, TweenInfo.new(0.1), {Size = UDim2.new(0, 45, 0, 45)}):Play()
+				task.wait(0.1)
+				TweenService:Create(MobileMinimizeButton, TweenInfo.new(0.1), {Size = UDim2.new(0, 50, 0, 50)}):Play()
+			end
+		end)
+		
+		-- Update stroke color when theme changes
+		table.insert(ConfigSystem.ThemeElements, {
+			Update = function(color)
+				ButtonStroke.Color = color
+			end
+		})
 	end
 
 	local function CreateParagraph(tabContainer, title, content)
