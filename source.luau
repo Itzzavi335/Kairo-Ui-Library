@@ -83,7 +83,7 @@ local function MakeDraggable(topbarobject, object)
 	end)
 end
 
--- New function for draggable mobile button with boundary constraints
+-- for mobile button don't touch if you don't know what your doing
 local function MakeDraggableMobileButton(button, object, screenGui)
 	local Dragging = false
 	local DragInput = nil
@@ -97,11 +97,9 @@ local function MakeDraggableMobileButton(button, object, screenGui)
 		local newX = StartPosition.X.Offset + Delta.X
 		local newY = StartPosition.Y.Offset + Delta.Y
 		
-		-- Get screen size
 		local screenSize = screenGui.AbsoluteSize
 		local buttonSize = object.AbsoluteSize
 		
-		-- Constrain to screen bounds with padding
 		local padding = 10
 		newX = math.clamp(newX, padding, screenSize.X - buttonSize.X - padding)
 		newY = math.clamp(newY, padding, screenSize.Y - buttonSize.Y - padding)
@@ -122,9 +120,9 @@ local function MakeDraggableMobileButton(button, object, screenGui)
 					local dragTime = tick() - ClickStartTime
 					local dragDistance = (input.Position - ClickStartPos).Magnitude
 					
-					-- If short click and minimal movement, treat as click
+					-- short click
 					if dragTime < 0.2 and dragDistance < 5 then
-						-- This is a click, not a drag
+						-- cooldown or smth
 					end
 					Dragging = false
 				end
