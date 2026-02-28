@@ -943,7 +943,7 @@ function Kairo:CreateWindow(config)
 		
 		local ButtonStroke = Instance.new("UIStroke")
 		ButtonStroke.Color = ConfigSystem.ThemeColors[ConfigSystem.CurrentTheme]
-		ButtonStroke.Thickness = 2
+		ButtonStroke.Thickness = 0
 		ButtonStroke.Parent = MobileMinimizeButton
 		
 		local ButtonImage = Instance.new("ImageLabel")
@@ -963,28 +963,23 @@ function Kairo:CreateWindow(config)
 		ClickDetector.ZIndex = 102
 		ClickDetector.Parent = MobileMinimizeButton
 		
-		-- Make it draggable
 		local isDragging = MakeDraggableMobileButton(ClickDetector, MobileMinimizeButton, ScreenGui)
 		
-		-- Click functionality with debounce
 		local lastClick = 0
 		ClickDetector.Activated:Connect(function()
 			local now = tick()
 			if now - lastClick < 0.3 then return end
 			lastClick = now
 			
-			-- Only toggle if not dragging
 			if not isDragging() then
 				DropShadowHolder.Visible = not DropShadowHolder.Visible
 				
-				-- Visual feedback
 				TweenService:Create(MobileMinimizeButton, TweenInfo.new(0.1), {Size = UDim2.new(0, 45, 0, 45)}):Play()
 				task.wait(0.1)
 				TweenService:Create(MobileMinimizeButton, TweenInfo.new(0.1), {Size = UDim2.new(0, 50, 0, 50)}):Play()
 			end
 		end)
 		
-		-- Update stroke color when theme changes
 		table.insert(ConfigSystem.ThemeElements, {
 			Update = function(color)
 				ButtonStroke.Color = color
