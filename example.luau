@@ -1,15 +1,17 @@
 local Kairo = loadstring(game:HttpGet("https://raw.githubusercontent.com/Itzzavi335/Kairo-Ui-Library/refs/heads/main/source.luau"))()
 
 local Window = Kairo:CreateWindow({
-    Title = "Kairo UI",
+    Title = "KairoUI",
     Theme = "Crimson",
-    Size = UDim2.fromOffset(520, 420),
+    Size = UDim2.fromOffset(520, 500),
     Center = true,
     Draggable = true,
     MinimizeKey = Enum.KeyCode.RightShift,
+    MinimizeButton = true, -- Enable mobile button
+    MinimizeButton_Image = "rbxassetid://116850882259653", -- Custom image
     Config = {
         Enabled = true,
-        Folder = "Kairo",
+        Folder = "MatoHub",
         AutoLoad = true
     }
 })
