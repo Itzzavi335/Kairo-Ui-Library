@@ -8,6 +8,9 @@ local Mouse = LocalPlayer:GetMouse()
 local CoreGui = game:GetService("CoreGui") or LocalPlayer.PlayerGui
 local HttpService = game:GetService("HttpService")
 local TextService = game:GetService("TextService")
+local RunService = game:GetService("RunService")
+
+local ConfigFolder = "KairoConfigs"
 
 local function CircleClick(Button, X, Y)
 	spawn(function()
@@ -120,9 +123,8 @@ local function MakeDraggableMobileButton(button, object, screenGui)
 					local dragTime = tick() - ClickStartTime
 					local dragDistance = (input.Position - ClickStartPos).Magnitude
 					
-					-- short click
 					if dragTime < 0.2 and dragDistance < 5 then
-						-- cooldown or smth
+						-- short click
 					end
 					Dragging = false
 				end
@@ -149,6 +151,52 @@ local function MakeDraggableMobileButton(button, object, screenGui)
 	end)
 	
 	return function() return Dragging end
+end
+
+-- Resize System
+local function MakeResizable(resizeHandle, targetObject, minSize, maxSize, onResize)
+	minSize = minSize or Vector2.new(300, 200)
+	maxSize = maxSize or Vector2.new(1000, 800)
+	
+	local isResizing = false
+	local resizeStartPos = nil
+	local startSize = nil
+	local startMousePos = nil
+	
+	resizeHandle.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			isResizing = true
+			resizeStartPos = targetObject.Position
+			startSize = targetObject.AbsoluteSize
+			startMousePos = input.Position
+			
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					isResizing = false
+				end
+			end)
+		end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+		if isResizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - startMousePos
+			local newWidth = math.clamp(startSize.X + delta.X, minSize.X, maxSize.X)
+			local newHeight = math.clamp(startSize.Y + delta.Y, minSize.Y, maxSize.Y)
+			
+			targetObject.Size = UDim2.new(0, newWidth, 0, newHeight)
+			
+			if onResize then
+				onResize(Vector2.new(newWidth, newHeight))
+			end
+		end
+	end)
+	
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			isResizing = false
+		end
+	end)
 end
 
 local ConfigSystem = {
@@ -184,7 +232,8 @@ local ConfigSystem = {
 	SliderElements = {},
 	DropdownElements = {},
 	TabElements = {},
-	AllElements = {}
+	AllElements = {},
+	DropdownOptionFrames = {} -- Store option frames for theme updates
 }
 
 function ConfigSystem:SetTheme(themeName)
@@ -226,21 +275,14 @@ function ConfigSystem:UpdateAllThemeElements(newColor)
 	for _, slider in pairs(self.SliderElements) do
 		if slider and slider:IsA("Frame") then
 			local sliderFill = slider:FindFirstChild("SliderFill")
-			local sliderCircle = slider:FindFirstChild("SliderCircle")
-			local circleStroke = sliderCircle and sliderCircle:FindFirstChild("UIStroke")
 			
 			if sliderFill then
 				sliderFill.BackgroundColor3 = newColor
 			end
-			if sliderCircle then
-				sliderCircle.BackgroundColor3 = newColor
-			end
-			if circleStroke then
-				circleStroke.Color = newColor
-			end
 		end
 	end
 	
+	-- Update dropdown elements including option frames
 	for _, dropdown in pairs(self.DropdownElements) do
 		if dropdown and dropdown:IsA("Frame") then
 			local dropdownList = dropdown:FindFirstChild("DropdownList")
@@ -259,11 +301,33 @@ function ConfigSystem:UpdateAllThemeElements(newColor)
 							if chooseStroke then
 								chooseStroke.Color = newColor
 							end
-							if optionText and optionText.TextColor3.r > 0.5 then
+							-- Only update text color if it's currently themed (not default gray)
+							if optionText and optionText.TextColor3 ~= Color3.fromRGB(230, 230, 230) then
 								optionText.TextColor3 = newColor
 							end
 						end
 					end
+				end
+			end
+		end
+	end
+	
+	-- Update stored option frames for multi-dropdowns
+	for _, optionData in pairs(self.DropdownOptionFrames) do
+		if optionData.Frame and optionData.Frame.Parent then
+			local chooseFrame = optionData.Frame:FindFirstChild("ChooseFrame")
+			local chooseStroke = chooseFrame and chooseFrame:FindFirstChild("UIStroke")
+			local optionText = optionData.Frame:FindFirstChild("OptionText")
+			
+			if optionData.IsSelected then
+				if chooseFrame then
+					chooseFrame.BackgroundColor3 = newColor
+				end
+				if chooseStroke then
+					chooseStroke.Color = newColor
+				end
+				if optionText then
+					optionText.TextColor3 = newColor
 				end
 			end
 		end
@@ -293,86 +357,146 @@ function ConfigSystem:UpdateAllThemeElements(newColor)
 					stroke.Color = newColor
 				end
 			end
+		elseif type(element) == "table" and element.Update then
+			element.Update(newColor)
 		end
 	end
 	
 	return newColor
 end
 
+-- File-based config system
+function ConfigSystem:EnsureFolder()
+	if not isfolder(ConfigFolder) then
+		makefolder(ConfigFolder)
+	end
+end
+
 function ConfigSystem:SaveConfig(name, data)
+	self:EnsureFolder()
+	
 	local configData = {
 		Name = name,
 		Theme = self.CurrentTheme,
-		Data = data or {}
+		Data = data or {},
+		SavedAt = os.time()
 	}
 	
-	self.Configs[name] = configData
-	self.CurrentConfig = name
+	local success, encoded = pcall(function()
+		return HttpService:JSONEncode(configData)
+	end)
 	
-	return {
-		Title = "Config",
-		Description = "Saved",
-		Content = "Config '" .. name .. "' saved successfully!",
-		Color = self.ThemeColors[self.CurrentTheme],
-		Delay = 3
-	}
-end
-
-function ConfigSystem:LoadConfig(name)
-	if self.Configs[name] then
-		local config = self.Configs[name]
-		self.CurrentTheme = config.Theme
+	if success then
+		writefile(ConfigFolder .. "/" .. name .. ".json", encoded)
 		self.CurrentConfig = name
 		
 		return {
 			Title = "Config",
-			Description = "Loaded",
-			Content = "Config '" .. name .. "' loaded successfully!",
+			Description = "Saved",
+			Content = "Config '" .. name .. "' saved successfully!",
 			Color = self.ThemeColors[self.CurrentTheme],
 			Delay = 3
-		}, config.Data
+		}
 	else
 		return {
 			Title = "Config",
 			Description = "Error",
-			Content = "Config '" .. name .. "' not found!",
+			Content = "Failed to save config: " .. tostring(encoded),
 			Color = Color3.fromRGB(255, 50, 50),
 			Delay = 3
-		}, nil
+		}
 	end
+end
+
+function ConfigSystem:LoadConfig(name)
+	self:EnsureFolder()
+	local filePath = ConfigFolder .. "/" .. name .. ".json"
+	
+	if isfile(filePath) then
+		local success, content = pcall(function()
+			return readfile(filePath)
+		end)
+		
+		if success then
+			local decodeSuccess, config = pcall(function()
+				return HttpService:JSONDecode(content)
+			end)
+			
+			if decodeSuccess and config then
+				self.CurrentTheme = config.Theme or "Default"
+				self.CurrentConfig = name
+				
+				return {
+					Title = "Config",
+					Description = "Loaded",
+					Content = "Config '" .. name .. "' loaded successfully!",
+					Color = self.ThemeColors[self.CurrentTheme],
+					Delay = 3
+				}, config.Data
+			end
+		end
+	end
+	
+	return {
+		Title = "Config",
+		Description = "Error",
+		Content = "Config '" .. name .. "' not found or corrupted!",
+		Color = Color3.fromRGB(255, 50, 50),
+		Delay = 3
+	}, nil
 end
 
 function ConfigSystem:DeleteConfig(name)
-	if self.Configs[name] then
-		self.Configs[name] = nil
-		if self.CurrentConfig == name then
-			self.CurrentConfig = nil
-		end
+	self:EnsureFolder()
+	local filePath = ConfigFolder .. "/" .. name .. ".json"
+	
+	if isfile(filePath) then
+		local success = pcall(function()
+			delfile(filePath)
+		end)
 		
-		return {
-			Title = "Config",
-			Description = "Deleted",
-			Content = "Config '" .. name .. "' deleted successfully!",
-			Color = self.ThemeColors[self.CurrentTheme],
-			Delay = 3
-		}
-	else
-		return {
-			Title = "Config",
-			Description = "Error",
-			Content = "Config '" .. name .. "' not found!",
-			Color = Color3.fromRGB(255, 50, 50),
-			Delay = 3
-		}
+		if success then
+			if self.CurrentConfig == name then
+				self.CurrentConfig = nil
+			end
+			
+			return {
+				Title = "Config",
+				Description = "Deleted",
+				Content = "Config '" .. name .. "' deleted successfully!",
+				Color = self.ThemeColors[self.CurrentTheme],
+				Delay = 3
+			}
+		end
 	end
+	
+	return {
+		Title = "Config",
+		Description = "Error",
+		Content = "Config '" .. name .. "' not found!",
+		Color = Color3.fromRGB(255, 50, 50),
+		Delay = 3
+	}
 end
 
 function ConfigSystem:GetConfigList()
-	local list = {}
-	for name, _ in pairs(self.Configs) do
-		table.insert(list, name)
+	self:EnsureFolder()
+	local configs = {}
+	
+	local success, files = pcall(function()
+		return listfiles(ConfigFolder)
+	end)
+	
+	if success and files then
+		for _, filePath in ipairs(files) do
+			local fileName = filePath:match("([^/\\]+)%.json$")
+			if fileName then
+				table.insert(configs, fileName)
+			end
+		end
 	end
-	return list
+	
+	return configs
 end
 
 local function MakeNotify(NotifyConfig)
@@ -613,9 +737,11 @@ function Kairo:CreateWindow(config)
 	local Size = config.Size or UDim2.fromOffset(520, 420)
 	local Center = config.Center ~= false
 	local Draggable = config.Draggable ~= false
+	local Resizable = config.Resize or false -- New resize option
 	local MinimizeKey = config.MinimizeKey or Enum.KeyCode.RightShift
 	local MinimizeButton = config.MinimizeButton or false
 	local MinimizeButtonImage = config.MinimizeButton_Image or "rbxassetid://16932740082"
+	local Badges = config.Badges or {} -- New badges option
 	local ConfigData = config.Config or {}
 	
 	if ConfigSystem.ThemeColors[Theme] then
@@ -692,9 +818,55 @@ function Kairo:CreateWindow(config)
 	TitleLabel.BackgroundTransparency = 0.999
 	TitleLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	TitleLabel.BorderSizePixel = 0
-	TitleLabel.Size = UDim2.new(1, -80, 1, 0)
+	TitleLabel.Size = UDim2.new(1, -150, 1, 0)
 	TitleLabel.Position = UDim2.new(0, 10, 0, 0)
 	TitleLabel.Parent = Top
+
+	-- Badges System
+	local BadgeContainer = Instance.new("Frame")
+	BadgeContainer.Name = "BadgeContainer"
+	BadgeContainer.BackgroundTransparency = 1
+	BadgeContainer.Size = UDim2.new(0, 0, 1, 0)
+	BadgeContainer.Position = UDim2.new(0, TitleLabel.TextBounds.X + 15, 0, 0)
+	BadgeContainer.Parent = Top
+	
+	local BadgeLayout = Instance.new("UIListLayout")
+	BadgeLayout.FillDirection = Enum.FillDirection.Horizontal
+	BadgeLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	BadgeLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	BadgeLayout.Padding = UDim.new(0, 6)
+	BadgeLayout.Parent = BadgeContainer
+	
+	local function UpdateBadgePosition()
+		BadgeContainer.Position = UDim2.new(0, TitleLabel.TextBounds.X + 15, 0, 0)
+	end
+	
+	TitleLabel:GetPropertyChangedSignal("TextBounds"):Connect(UpdateBadgePosition)
+	
+	for _, badgeText in ipairs(Badges) do
+		local Badge = Instance.new("TextLabel")
+		Badge.Name = "Badge"
+		Badge.Font = Enum.Font.GothamBold
+		Badge.Text = badgeText
+		Badge.TextColor3 = Color3.fromRGB(255, 255, 255)
+		Badge.TextSize = 10
+		Badge.BackgroundColor3 = ConfigSystem.ThemeColors[ConfigSystem.CurrentTheme]
+		Badge.BackgroundTransparency = 0.3
+		Badge.BorderSizePixel = 0
+		Badge.Size = UDim2.new(0, TextService:GetTextSize(badgeText, 10, Enum.Font.GothamBold, Vector2.new(999, 999)).X + 10, 0, 18)
+		
+		local BadgeCorner = Instance.new("UICorner")
+		BadgeCorner.CornerRadius = UDim.new(0, 4)
+		BadgeCorner.Parent = Badge
+		
+		Badge.Parent = BadgeContainer
+		
+		table.insert(ConfigSystem.ThemeElements, {
+			Update = function(color)
+				Badge.BackgroundColor3 = color
+			end
+		})
+	end
 
 	local Close = Instance.new("TextButton")
 	Close.Font = Enum.Font.SourceSans
@@ -774,6 +946,40 @@ function Kairo:CreateWindow(config)
 	MaxIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
 	MaxIcon.Size = UDim2.new(1, -8, 1, -8)
 	MaxIcon.Parent = MaxRestore
+
+	-- Resize Handle (Bottom Right)
+	local ResizeHandle = nil
+	if Resizable then
+		ResizeHandle = Instance.new("TextButton")
+		ResizeHandle.Name = "ResizeHandle"
+		ResizeHandle.Text = ""
+		ResizeHandle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+		ResizeHandle.BackgroundTransparency = 0.5
+		ResizeHandle.BorderSizePixel = 0
+		ResizeHandle.Size = UDim2.new(0, 15, 0, 15)
+		ResizeHandle.Position = UDim2.new(1, -15, 1, -15)
+		ResizeHandle.AutoButtonColor = false
+		ResizeHandle.Parent = Main
+		
+		local ResizeCorner = Instance.new("UICorner")
+		ResizeCorner.CornerRadius = UDim.new(0, 3)
+		ResizeCorner.Parent = ResizeHandle
+		
+		local ResizeIcon = Instance.new("ImageLabel")
+		ResizeIcon.Name = "ResizeIcon"
+		ResizeIcon.Image = "rbxassetid://16932740082" -- Diagonal resize icon
+		ResizeIcon.BackgroundTransparency = 1
+		ResizeIcon.Size = UDim2.new(0.7, 0, 0.7, 0)
+		ResizeIcon.Position = UDim2.new(0.15, 0, 0.15, 0)
+		ResizeIcon.Rotation = 90
+		ResizeIcon.Parent = ResizeHandle
+		
+		-- Make resizable
+		MakeResizable(ResizeHandle, DropShadowHolder, Vector2.new(400, 300), Vector2.new(1200, 900), function(newSize)
+			-- Update internal main size
+			Main.Size = UDim2.new(1, -47, 1, -47)
+		end)
+	end
 
 	local TabFrame = Instance.new("Frame")
 	TabFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1612,7 +1818,8 @@ function Kairo:CreateWindow(config)
 			Options = options or {},
 			Value = multi and (defaultValue or {}) or defaultValue or nil,
 			Multi = multi or false,
-			Open = false
+			Open = false,
+			OptionFrames = {} -- Track option frames for this dropdown
 		}
 		
 		local function UpdateListSize()
@@ -1732,6 +1939,13 @@ function Kairo:CreateWindow(config)
 			local ChooseCorner = Instance.new("UICorner")
 			ChooseCorner.Parent = ChooseFrame
 			
+			-- Store reference for theme updates
+			local optionId = HttpService:GenerateGUID(false)
+			ConfigSystem.DropdownOptionFrames[optionId] = {
+				Frame = Option,
+				IsSelected = false
+			}
+			
 			local function UpdateOptionVisual()
 				local isSelected = false
 				if dropdownData.Multi then
@@ -1739,6 +1953,8 @@ function Kairo:CreateWindow(config)
 				else
 					isSelected = dropdownData.Value == optionName
 				end
+				
+				ConfigSystem.DropdownOptionFrames[optionId].IsSelected = isSelected
 				
 				if isSelected then
 					TweenService:Create(ChooseStroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
@@ -1763,14 +1979,16 @@ function Kairo:CreateWindow(config)
 					else
 						table.insert(dropdownData.Value, optionName)
 					end
+					UpdateOptionVisual()
 				else
+					-- For single select, update all options
 					for _, child in ListScroll:GetChildren() do
 						if child:IsA("Frame") and child.Name == "Option" then
-							local childChooseFrame = child:FindFirstChild("ChooseFrame")
-							local childChooseStroke = childChooseFrame and childChooseFrame:FindFirstChild("UIStroke")
 							local childOptionText = child:FindFirstChild("OptionText")
-							
 							if childOptionText and childOptionText.Text ~= optionName then
+								local childChooseFrame = child:FindFirstChild("ChooseFrame")
+								local childChooseStroke = childChooseFrame and childChooseFrame:FindFirstChild("UIStroke")
+								
 								if childChooseStroke then
 									TweenService:Create(childChooseStroke, TweenInfo.new(0.2), {Transparency = 0.999}):Play()
 								end
@@ -1779,14 +1997,21 @@ function Kairo:CreateWindow(config)
 								end
 								TweenService:Create(child, TweenInfo.new(0.2), {BackgroundTransparency = 0.999}):Play()
 								TweenService:Create(childOptionText, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(230, 230, 230)}):Play()
+								
+								-- Update stored state
+								for id, data in pairs(ConfigSystem.DropdownOptionFrames) do
+									if data.Frame == child then
+										data.IsSelected = false
+									end
+								end
 							end
 						end
 					end
 					
 					dropdownData.Value = optionName
+					UpdateOptionVisual()
 				end
 				
-				UpdateOptionVisual()
 				UpdateSelectedDisplay()
 				
 				if callback then
@@ -1838,6 +2063,12 @@ function Kairo:CreateWindow(config)
 			if dropdownConnection then
 				dropdownConnection:Disconnect()
 			end
+			-- Clean up stored option frames
+			for id, data in pairs(ConfigSystem.DropdownOptionFrames) do
+				if data.Frame and data.Frame:IsDescendantOf(DropdownList) then
+					ConfigSystem.DropdownOptionFrames[id] = nil
+				end
+			end
 			DropdownList:Destroy()
 		end)
 		
@@ -1872,6 +2103,7 @@ function Kairo:CreateWindow(config)
 					local chooseFrame = child:FindFirstChild("ChooseFrame")
 					local chooseStroke = chooseFrame and chooseFrame:FindFirstChild("UIStroke")
 					local optionText = child:FindFirstChild("OptionText")
+					
 					if chooseFrame and chooseStroke and optionText then
 						if isSelected then
 							TweenService:Create(chooseStroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
@@ -1896,6 +2128,13 @@ function Kairo:CreateWindow(config)
 				end
 			end
 			
+			-- Clean up old option frames from storage
+			for id, data in pairs(ConfigSystem.DropdownOptionFrames) do
+				if data.Frame and data.Frame:IsDescendantOf(ListScroll) then
+					ConfigSystem.DropdownOptionFrames[id] = nil
+				end
+			end
+			
 			dropdownData.Options = newOptions or {}
 			dropdownData.Value = newValue or (dropdownData.Multi and {} or nil)
 			
@@ -1916,8 +2155,10 @@ function Kairo:CreateWindow(config)
 		return dropdownFunc
 	end
 
-	local function CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId)
+	local function CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId, showKnob)
 		if not tabContainer or not tabContainer:IsA("Frame") then return end
+		
+		showKnob = showKnob ~= false -- Default to true for backward compatibility, but you can pass false
 		
 		local Slider = Instance.new("Frame")
 		Slider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -2017,24 +2258,27 @@ function Kairo:CreateWindow(config)
 		FillCorner.CornerRadius = UDim.new(0, 2)
 		FillCorner.Parent = SliderFill
 
-		local SliderCircle = Instance.new("Frame")
-		SliderCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-		SliderCircle.BackgroundColor3 = ConfigSystem.ThemeColors[ConfigSystem.CurrentTheme]
-		SliderCircle.BorderColor3 = Color3.fromRGB(0, 0, 0)
-		SliderCircle.BorderSizePixel = 0
-		SliderCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
-		SliderCircle.Size = UDim2.new(0, 12, 0, 12)
-		SliderCircle.Name = "SliderCircle"
-		SliderCircle.Parent = SliderFrame
+		local SliderCircle = nil
+		if showKnob then
+			SliderCircle = Instance.new("Frame")
+			SliderCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+			SliderCircle.BackgroundColor3 = ConfigSystem.ThemeColors[ConfigSystem.CurrentTheme]
+			SliderCircle.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			SliderCircle.BorderSizePixel = 0
+			SliderCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+			SliderCircle.Size = UDim2.new(0, 12, 0, 12)
+			SliderCircle.Name = "SliderCircle"
+			SliderCircle.Parent = SliderFrame
 
-		local CircleCorner = Instance.new("UICorner")
-		CircleCorner.CornerRadius = UDim.new(0, 6)
-		CircleCorner.Parent = SliderCircle
+			local CircleCorner = Instance.new("UICorner")
+			CircleCorner.CornerRadius = UDim.new(0, 6)
+			CircleCorner.Parent = SliderCircle
 
-		local CircleStroke = Instance.new("UIStroke")
-		CircleStroke.Color = Color3.fromRGB(255, 255, 255)
-		CircleStroke.Thickness = 1
-		CircleStroke.Parent = SliderCircle
+			local CircleStroke = Instance.new("UIStroke")
+			CircleStroke.Color = Color3.fromRGB(255, 255, 255)
+			CircleStroke.Thickness = 1
+			CircleStroke.Parent = SliderCircle
+		end
 		
 		table.insert(ConfigSystem.SliderElements, SliderFrame)
 		
@@ -2061,18 +2305,22 @@ function Kairo:CreateWindow(config)
 			
 			if instant then
 				SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-				SliderCircle.Position = UDim2.new(percentage, 0, 0.5, 0)
+				if SliderCircle then
+					SliderCircle.Position = UDim2.new(percentage, 0, 0.5, 0)
+				end
 			else
 				TweenService:Create(
 					SliderFill,
 					TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 					{Size = UDim2.new(percentage, 0, 1, 0)}
 				):Play()
-				TweenService:Create(
-					SliderCircle,
-					TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-					{Position = UDim2.new(percentage, 0, 0.5, 0)}
-				):Play()
+				if SliderCircle then
+					TweenService:Create(
+						SliderCircle,
+						TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+						{Position = UDim2.new(percentage, 0, 0.5, 0)}
+					):Play()
+				end
 			end
 			
 			if callback then
@@ -2274,7 +2522,7 @@ function Kairo:CreateWindow(config)
 		return TabContentContainer, SwitchToTab
 	end
 
-	local ConfigTabContainer, SwitchToConfigTab = CreateTabButton("Configs", "rbxassetid://17418447008", true)
+	local ConfigTabContainer, SwitchToConfigTab = CreateTabButton("Configs", "rbxassetid://16932740082", true)
 	
 	CreateParagraph(ConfigTabContainer, "Configuration Settings", "Manage your UI settings and themes here.")
 	
@@ -2371,7 +2619,12 @@ function Kairo:CreateWindow(config)
 		end
 	end, "DeleteConfigDropdown")
 	
-	CreateParagraph(ConfigTabContainer, "Note", "Configs are saved locally for this session. In a full implementation, they would be saved to DataStore.")
+	-- Initialize config lists
+	local initialConfigList = ConfigSystem:GetConfigList()
+	LoadConfigDropdown:Refresh(initialConfigList)
+	DeleteConfigDropdown:Refresh(initialConfigList)
+	
+	CreateParagraph(ConfigTabContainer, "Note", "Configs are saved to local files in the KairoConfigs folder.")
 
 	local Window = {}
 
@@ -2387,20 +2640,30 @@ function Kairo:CreateWindow(config)
 		return CreateButton(tabContainer, title, content, iconId, callback)
 	end
 
-	function Window:AddToggle(tabContainer, title, content, defaultValue, callback)
-		return CreateToggle(tabContainer, title, content, defaultValue, callback)
+	function Window:AddToggle(tabContainer, title, content, defaultValue, callback, elementId)
+		return CreateToggle(tabContainer, title, content, defaultValue, callback, elementId)
 	end
 
-	function Window:AddInput(tabContainer, title, content, placeholder, callback)
-		return CreateInput(tabContainer, title, content, placeholder, callback)
+	function Window:AddInput(tabContainer, title, content, placeholder, callback, elementId)
+		return CreateInput(tabContainer, title, content, placeholder, callback, elementId)
 	end
 
-	function Window:AddDropdown(tabContainer, title, content, options, multi, defaultValue, callback)
-		return CreateDropdown(tabContainer, title, content, options, multi, defaultValue, callback)
+	function Window:AddDropdown(tabContainer, title, content, options, multi, defaultValue, callback, elementId)
+		return CreateDropdown(tabContainer, title, content, options, multi, defaultValue, callback, elementId)
 	end
 
-	function Window:AddSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback)
-		return CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback)
+	-- Multi-dropdown convenience method
+	function Window:AddMultiDropdown(tabContainer, title, content, options, defaultValue, callback, elementId)
+		return CreateDropdown(tabContainer, title, content, options, true, defaultValue, callback, elementId)
+	end
+
+	function Window:AddSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId, showKnob)
+		return CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId, showKnob)
+	end
+
+	-- Line-only slider (no knob)
+	function Window:AddLineSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId)
+		return CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId, false)
 	end
 
 	function Window:Notify(notifyConfig)
