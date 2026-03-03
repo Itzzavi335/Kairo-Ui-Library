@@ -9,15 +9,17 @@ local Kairo = loadstring(game:HttpGet("https://raw.githubusercontent.com/Itzzavi
 CreateWindow:
 ```lua
 local Window = Kairo:CreateWindow({
-    Title = "Kairo UI",
+    Title = "KairoUI",
     Theme = "Crimson",
-    Size = UDim2.fromOffset(520, 420),
+    Size = UDim2.fromOffset(580, 520),
     Center = true,
     Draggable = true,
     MinimizeKey = Enum.KeyCode.RightShift,
+    MinimizeButton = true, -- For Mobile
+    MinimizeButton_Image = "rbxassetid://116850882259653",
     Config = {
         Enabled = true,
-        Folder = "Kairo",
+        Folder = "Kairo_Config",
         AutoLoad = true
     }
 })
