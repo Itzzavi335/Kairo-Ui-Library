@@ -2274,7 +2274,7 @@ function Kairo:CreateWindow(config)
 		return TabContentContainer, SwitchToTab
 	end
 
-	local ConfigTabContainer, SwitchToConfigTab = CreateTabButton("Configs", "rbxassetid://16932740082", true)
+	local ConfigTabContainer, SwitchToConfigTab = CreateTabButton("Configs", "rbxassetid://17418447008", true)
 	
 	CreateParagraph(ConfigTabContainer, "Configuration Settings", "Manage your UI settings and themes here.")
 	
