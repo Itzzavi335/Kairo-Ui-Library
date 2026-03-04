@@ -14,6 +14,8 @@ local Window = Kairo:CreateWindow({
     Size = UDim2.fromOffset(580, 520),
     Center = true,
     Draggable = true,
+    Resize = true,
+    Badges = {"BETA", "v2.0"},
     MinimizeKey = Enum.KeyCode.RightShift,
     MinimizeButton = true, -- For Mobile
     MinimizeButton_Image = "rbxassetid://116850882259653",
@@ -45,17 +47,34 @@ local MyToggle = Window:AddToggle(MainTab, "Enable Feature", "Toggle this featur
     -- Code here
 end, "FeatureToggle")
 ```
+
+Toggle Methods: ( not needed )
+```lua
+MyToggle:Set(true) -- Set toggle state true / false
+print(MyToggle.Value) -- Get current state
+```
 AddInput:
 ```lua
 local MyInput = Window:AddInput(MainTab, "Username", "Enter your username", "Player123", function(value)
     -- Code here
 end, "UsernameInput")
 ```
+Input Methods: ( not needed )
+```lua
+MyInput:Set("NewUsername") -- Set input text
+print(MyInput.Value) -- Get current value
+```
 AddSlider:
 ```lua
-local MySlider = Window:AddSlider(MainTab, "Volume", "Adjust game volume", 0, 100, 50, function(value)
+local MySlider = Window:AddLineSlider(MainTab, "Line Speed", "Clean line slider without knob", 0, 100, 50, function(value)
     -- Code here
-end, "VolumeSlider")
+    print("Line slider value:", value)
+end, "LineSpeedSlider")
+```
+Slider Methods: ( not needed )
+```lua
+MySlider:Set(75) -- Set slider value
+print(MySlider.Value) -- Get current value
 ```
 AddDropdown:
 ```lua
@@ -63,6 +82,24 @@ local MyDropdown = Window:AddDropdown(MainTab, "Weapon", "Select your weapon",
     {"Sword", "Axe", "Bow", "Staff"}, false, "Sword", function(value)
     -- Code here
 end, "WeaponDropdown")
+```
+AddMultiDropdown:
+```lua
+local MyMultiDropdown = Window:AddMultiDropdown(MainTab, "Perks", "Select multiple perks",
+    {"Speed Boost", "Double Jump", "Invisibility", "Shield", "Regeneration"},
+    {"Speed Boost", "Shield"}, -- Default selected values (table)
+    function(selectedValues)
+        -- Code here
+        print("Selected perks:", table.concat(selectedValues, ", "))
+    end,
+    "PerksDropdown"
+)
+```
+Dropdown Methods: ( not needed )
+```lua
+MyDropdown:Set("Axe") -- Set selected option
+MyDropdown:Refresh({"Gun", "Rifle", "Shotgun"}, "Gun") -- Refresh options
+print(MyDropdown.Value) -- Get current value
 ```
 AddNotification:
 ```lua
