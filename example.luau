@@ -3,15 +3,17 @@ local Kairo = loadstring(game:HttpGet("https://raw.githubusercontent.com/Itzzavi
 local Window = Kairo:CreateWindow({
     Title = "KairoUI",
     Theme = "Crimson",
-    Size = UDim2.fromOffset(520, 500),
+    Size = UDim2.fromOffset(580, 520),
     Center = true,
     Draggable = true,
+    Resize = true,
+    Badges = {"BETA", "v2.0"},
     MinimizeKey = Enum.KeyCode.RightShift,
-    MinimizeButton = true, -- Enable mobile button
-    MinimizeButton_Image = "rbxassetid://116850882259653", -- Custom image
+    MinimizeButton = true, -- For Mobile
+    MinimizeButton_Image = "rbxassetid://116850882259653",
     Config = {
         Enabled = true,
-        Folder = "MatoHub",
+        Folder = "Kairo_Config",
         AutoLoad = true
     }
 })
