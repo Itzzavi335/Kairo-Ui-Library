@@ -46,6 +46,16 @@ Window:AddDropdown(MainTab, "Weapon", "Select your weapon", {"Sword", "Axe", "Bo
     print("Dropdown:", value)
 end, "WeaponDropdown")
 
+local MyMultiDropdown = Window:AddMultiDropdown(MainTab, "Perks", "Select multiple perks",
+    {"Speed Boost", "Double Jump", "Invisibility", "Shield", "Regeneration"},
+    {"Speed Boost", "Shield"}, -- Default selected values (table)
+    function(selectedValues)
+        -- Code here
+        print("Selected perks:", table.concat(selectedValues, ", "))
+    end,
+    "PerksDropdown"
+)
+
 Window:AddSlider(MainTab, "Volume", "Adjust game volume", 0, 100, 50, function(value)
     print("Slider:", value)
 end, "VolumeSlider")
