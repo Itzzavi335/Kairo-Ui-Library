@@ -1288,6 +1288,7 @@ function Kairo:CreateWindow(config)
         )
     end
 
+    -- Element Creation Functions
     local function CreateParagraph(tabContainer, title, content)
         if not tabContainer or not tabContainer:IsA("Frame") then
             return
@@ -1785,6 +1786,7 @@ function Kairo:CreateWindow(config)
 
         return inputFunc
     end
+    
     local function CreateDropdown(tabContainer, title, content, options, multi, defaultValue, callback, elementId)
         if not tabContainer or not tabContainer:IsA("Frame") then
             return
@@ -2342,6 +2344,7 @@ function Kairo:CreateWindow(config)
 
         return dropdownFunc
     end
+    
     local function CreateSlider(
         tabContainer,
         title,
@@ -2617,6 +2620,7 @@ function Kairo:CreateWindow(config)
         if not tabContainer or not tabContainer:IsA("Frame") then
             return
         end
+        
         local ImageBox = Instance.new("Frame")
         ImageBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         ImageBox.BackgroundTransparency = 0.935
@@ -2753,124 +2757,63 @@ function Kairo:CreateWindow(config)
         return imageBoxFunc
     end
 
-    local function CreateSection(tabContainer, title)
+    -- FIXED: Renamed from CreateSection to CreateDivider
+    local function CreateDivider(tabContainer, title)
         if not tabContainer or not tabContainer:IsA("Frame") then
             return
         end
-        local Section = Instance.new("Frame")
-        Section.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        Section.BackgroundTransparency = 0.935
-        Section.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        Section.BorderSizePixel = 0
-        Section.Size = UDim2.new(1, 0, 0, 40)
-        Section.Name = "Section"
-        Section.Parent = tabContainer
+        
+        local Divider = Instance.new("Frame")
+        Divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        Divider.BackgroundTransparency = 0.935
+        Divider.BorderColor3 = Color3.fromRGB(0, 0, 0)
+        Divider.BorderSizePixel = 0
+        Divider.Size = UDim2.new(1, 0, 0, 40)
+        Divider.Name = "Divider"
+        Divider.Parent = tabContainer
 
-        local SectionCorner = Instance.new("UICorner")
-        SectionCorner.CornerRadius = UDim.new(0, 4)
-        SectionCorner.Parent = Section
+        local DividerCorner = Instance.new("UICorner")
+        DividerCorner.CornerRadius = UDim.new(0, 4)
+        DividerCorner.Parent = Divider
 
-        local SectionTitle = Instance.new("TextLabel")
-        SectionTitle.Font = Enum.Font.GothamBold
-        SectionTitle.Text = title
-        SectionTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-        SectionTitle.TextSize = 14
-        SectionTitle.TextXAlignment = Enum.TextXAlignment.Left
-        SectionTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        SectionTitle.BackgroundTransparency = 0.999
-        SectionTitle.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        SectionTitle.BorderSizePixel = 0
-        SectionTitle.Position = UDim2.new(0, 10, 0, 0)
-        SectionTitle.Size = UDim2.new(1, -20, 0, 40)
-        SectionTitle.Name = "SectionTitle"
-        SectionTitle.Parent = Section
+        local DividerTitle = Instance.new("TextLabel")
+        DividerTitle.Font = Enum.Font.GothamBold
+        DividerTitle.Text = title
+        DividerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        DividerTitle.TextSize = 14
+        DividerTitle.TextXAlignment = Enum.TextXAlignment.Left
+        DividerTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        DividerTitle.BackgroundTransparency = 0.999
+        DividerTitle.BorderColor3 = Color3.fromRGB(0, 0, 0)
+        DividerTitle.BorderSizePixel = 0
+        DividerTitle.Position = UDim2.new(0, 10, 0, 0)
+        DividerTitle.Size = UDim2.new(1, -20, 0, 40)
+        DividerTitle.Name = "DividerTitle"
+        DividerTitle.Parent = Divider
 
-        local SectionLine = Instance.new("Frame")
-        SectionLine.BackgroundColor3 = ConfigSystem.ThemeColors[ConfigSystem.CurrentTheme]
-        SectionLine.BackgroundTransparency = 0.5
-        SectionLine.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        SectionLine.BorderSizePixel = 0
-        SectionLine.Position = UDim2.new(0, 10, 0, 35)
-        SectionLine.Size = UDim2.new(1, -20, 0, 2)
-        SectionLine.Name = "SectionLine"
-        SectionLine.Parent = Section
+        local DividerLine = Instance.new("Frame")
+        DividerLine.BackgroundColor3 = ConfigSystem.ThemeColors[ConfigSystem.CurrentTheme]
+        DividerLine.BackgroundTransparency = 0.5
+        DividerLine.BorderColor3 = Color3.fromRGB(0, 0, 0)
+        DividerLine.BorderSizePixel = 0
+        DividerLine.Position = UDim2.new(0, 10, 0, 35)
+        DividerLine.Size = UDim2.new(1, -20, 0, 2)
+        DividerLine.Name = "DividerLine"
+        DividerLine.Parent = Divider
 
         table.insert(
             ConfigSystem.ThemeElements,
             {
                 Update = function(color)
-                    SectionLine.BackgroundColor3 = color
+                    DividerLine.BackgroundColor3 = color
                 end
             }
-        )
-
-        local SectionContent = Instance.new("Frame")
-        SectionContent.BackgroundTransparency = 1
-        SectionContent.Size = UDim2.new(1, 0, 0, 0)
-        SectionContent.Name = "SectionContent"
-        SectionContent.Parent = Section
-
-        local SectionLayout = Instance.new("UIListLayout")
-        SectionLayout.Padding = UDim.new(0, 8)
-        SectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        SectionLayout.Parent = SectionContent
-
-        SectionLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(
-            function()
-                local contentHeight = SectionLayout.AbsoluteContentSize.Y
-                SectionContent.Size = UDim2.new(1, 0, 0, contentHeight)
-                Section.Size = UDim2.new(1, 0, 0, 40 + contentHeight + 10)
-                UpdateContentSize()
-            end
         )
 
         task.wait(0.1)
         UpdateContentSize()
 
-        local sectionFunc = {
-            Type = "Section",
-            Content = SectionContent
-        }
-
-        function sectionFunc:AddParagraph(title, content)
-            return CreateParagraph(SectionContent, title, content)
-        end
-
-        function sectionFunc:AddButton(title, content, iconId, callback)
-            return CreateButton(SectionContent, title, content, iconId, callback)
-        end
-
-        function sectionFunc:AddToggle(title, content, defaultValue, callback, elementId)
-            return CreateToggle(SectionContent, title, content, defaultValue, callback, elementId)
-        end
-
-        function sectionFunc:AddInput(title, content, placeholder, callback, elementId)
-            return CreateInput(SectionContent, title, content, placeholder, callback, elementId)
-        end
-
-        function sectionFunc:AddDropdown(title, content, options, multi, defaultValue, callback, elementId)
-            return CreateDropdown(SectionContent, title, content, options, multi, defaultValue, callback, elementId)
-        end
-
-        function sectionFunc:AddSlider(title, content, minValue, maxValue, defaultValue, callback, elementId, showKnob)
-            return CreateSlider(
-                SectionContent,
-                title,
-                content,
-                minValue,
-                maxValue,
-                defaultValue,
-                callback,
-                elementId,
-                showKnob
-            )
-        end
-
-        function sectionFunc:AddImageBox(title, content, imageId, size, callback, elementId)
-            return CreateImageBox(SectionContent, title, content, imageId, size, callback, elementId)
-        end
-
-        return sectionFunc
+        return Divider
     end
 
     local function CreateColorPicker(tabContainer, title, content, defaultColor, callback, elementId)
@@ -3562,6 +3505,7 @@ function Kairo:CreateWindow(config)
 
         return keybindFunc
     end
+    
     local function CreateTabButton(tabName, iconId, isConfigTab)
         TabCount = TabCount + 1
         local Tab = Instance.new("Frame")
@@ -3692,13 +3636,19 @@ function Kairo:CreateWindow(config)
 
         return TabContentContainer, SwitchToTab
     end
+    
     local ConfigTabContainer, SwitchToConfigTab = CreateTabButton("Configs", "rbxassetid://16932740082", true)
+    
+    -- Create config tab elements
     CreateParagraph(ConfigTabContainer, "Configuration Settings", "Manage your UI settings and themes here.")
+    
     local themeNames = {}
     for themeName, _ in pairs(ConfigSystem.ThemeColors) do
         table.insert(themeNames, themeName)
     end
+    
     local CurrentConfigName = ""
+    
     local ThemeDropdown =
         CreateDropdown(
         ConfigTabContainer,
@@ -3723,6 +3673,7 @@ function Kairo:CreateWindow(config)
         end,
         "ThemeDropdown"
     )
+    
     local TransparencyToggle =
         CreateToggle(
         ConfigTabContainer,
@@ -3740,6 +3691,7 @@ function Kairo:CreateWindow(config)
         end,
         "TransparencyToggle"
     )
+    
     local ConfigNameInput =
         CreateInput(
         ConfigTabContainer,
@@ -3751,6 +3703,7 @@ function Kairo:CreateWindow(config)
         end,
         "ConfigNameInput"
     )
+    
     CreateButton(
         ConfigTabContainer,
         "Save Config",
@@ -3793,6 +3746,7 @@ function Kairo:CreateWindow(config)
             end
         end
     )
+    
     local LoadConfigDropdown =
         CreateDropdown(
         ConfigTabContainer,
@@ -3823,6 +3777,7 @@ function Kairo:CreateWindow(config)
         end,
         "LoadConfigDropdown"
     )
+    
     local DeleteConfigDropdown =
         CreateDropdown(
         ConfigTabContainer,
@@ -3842,54 +3797,51 @@ function Kairo:CreateWindow(config)
         end,
         "DeleteConfigDropdown"
     )
+    
     local initialConfigList = ConfigSystem:GetConfigList()
     LoadConfigDropdown:Refresh(initialConfigList)
     DeleteConfigDropdown:Refresh(initialConfigList)
+    
     CreateParagraph(ConfigTabContainer, "Note", "Configs are saved to local files in the KairoConfigs folder.")
+    
+    -- Switch to first tab
+    SwitchToConfigTab()
+
+    -- Window Methods
     local Window = {}
+    
     function Window:CreateTab(tabName, iconId)
         return CreateTabButton(tabName, iconId, false)
     end
+    
     function Window:AddParagraph(tabContainer, title, content)
         return CreateParagraph(tabContainer, title, content)
     end
+    
     function Window:AddButton(tabContainer, title, content, iconId, callback)
         return CreateButton(tabContainer, title, content, iconId, callback)
     end
+    
     function Window:AddToggle(tabContainer, title, content, defaultValue, callback, elementId)
         return CreateToggle(tabContainer, title, content, defaultValue, callback, elementId)
     end
+    
     function Window:AddInput(tabContainer, title, content, placeholder, callback, elementId)
         return CreateInput(tabContainer, title, content, placeholder, callback, elementId)
     end
+    
     function Window:AddDropdown(tabContainer, title, content, options, multi, defaultValue, callback, elementId)
         return CreateDropdown(tabContainer, title, content, options, multi, defaultValue, callback, elementId)
     end
+    
     function Window:AddMultiDropdown(tabContainer, title, content, options, defaultValue, callback, elementId)
         return CreateDropdown(tabContainer, title, content, options, true, defaultValue, callback, elementId)
     end
-    function Window:AddSlider(
-        tabContainer,
-        title,
-        content,
-        minValue,
-        maxValue,
-        defaultValue,
-        callback,
-        elementId,
-        showKnob)
-        return CreateSlider(
-            tabContainer,
-            title,
-            content,
-            minValue,
-            maxValue,
-            defaultValue,
-            callback,
-            elementId,
-            showKnob
-        )
+    
+    function Window:AddSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId, showKnob)
+        return CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId, showKnob)
     end
+    
     function Window:AddLineSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId)
         return CreateSlider(tabContainer, title, content, minValue, maxValue, defaultValue, callback, elementId, false)
     end
@@ -3898,8 +3850,9 @@ function Kairo:CreateWindow(config)
         return CreateImageBox(tabContainer, title, content, imageId, size, callback, elementId)
     end
 
-    function Window:AddSection(tabContainer, title)
-        return CreateSection(tabContainer, title)
+    -- FIXED: Renamed from AddSection to AddDivider
+    function Window:AddDivider(tabContainer, title)
+        return CreateDivider(tabContainer, title)
     end
 
     function Window:AddColorPicker(tabContainer, title, content, defaultColor, callback, elementId)
@@ -3909,12 +3862,15 @@ function Kairo:CreateWindow(config)
     function Window:AddKeybind(tabContainer, title, content, defaultKey, callback, elementId)
         return CreateKeybind(tabContainer, title, content, defaultKey, callback, elementId)
     end
+    
     function Window:Notify(notifyConfig)
         return MakeNotify(notifyConfig)
     end
+    
     function Window:SetTheme(themeName)
         return ConfigSystem:SetTheme(themeName)
     end
+    
     function Window:SaveConfig(name)
         local configData = {}
         for id, element in pairs(AllElements) do
@@ -3935,6 +3891,7 @@ function Kairo:CreateWindow(config)
         local notifyData = ConfigSystem:SaveConfig(name, configData)
         MakeNotify(notifyData)
     end
+    
     function Window:LoadConfig(name)
         local notifyData, configData = ConfigSystem:LoadConfig(name)
         MakeNotify(notifyData)
@@ -3952,16 +3909,21 @@ function Kairo:CreateWindow(config)
             end
         end
     end
+    
     function Window:DeleteConfig(name)
         local notifyData = ConfigSystem:DeleteConfig(name)
         MakeNotify(notifyData)
     end
+    
     function Window:GetConfigs()
         return ConfigSystem:GetConfigList()
     end
+    
     function Window:Destroy()
         ScreenGui:Destroy()
     end
+    
     return Window
 end
+
 return Kairo
