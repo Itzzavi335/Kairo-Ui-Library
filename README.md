@@ -35,6 +35,10 @@ AddTab:
 ```lua
 local MainTab = Window:CreateTab("Main", "rbxassetid://16932740082")
 ```
+AddDivider:
+```lua
+Window:AddDivider(MainTab, "Settings Section")
+```
 AddButton:
 ```lua
 Window:AddButton(MainTab, "Click Me", "This button shows a notification", "rbxassetid://16932740082", function()
@@ -100,6 +104,37 @@ Dropdown Methods: ( not needed )
 MyDropdown:Set("Axe") -- Set selected option
 MyDropdown:Refresh({"Gun", "Rifle", "Shotgun"}, "Gun") -- Refresh options
 print(MyDropdown.Value) -- Get current value
+```
+AddKeybind:
+```lua
+local Keybind = Window:AddKeybind(CombatTab, "Aimbot Key", "Key to activate aimbot", 
+    Enum.KeyCode.E,  -- Default key
+    function(key)
+        print("Key pressed:", key.Name)
+    end,
+    "AimbotKeybind"
+)
+```
+AddColorPicker:
+```lua
+local ColorPicker = Window:AddColorPicker(MainTab, "ESP Color", "Choose ESP color", 
+    Color3.fromRGB(255, 0, 0),  -- Default color
+    function(color)
+        print("Color changed:", color.R, color.G, color.B)
+    end,
+    "ESPColorPicker"
+)
+```
+AddImageBox:
+```lua
+local ImageBox = Window:AddImageBox(MainTab, "Logo", "Kairo UI Logo", 
+    "rbxassetid://16932740082",  -- Image ID
+    UDim2.new(0, 150, 0, 150),  -- Size
+    function(imageId)
+        print("Image clicked:", imageId)
+    end,
+    "LogoImage"
+)
 ```
 AddNotification:
 ```lua
