@@ -77,6 +77,14 @@ local ImageBox = Window:AddImageBox(MainTab, "Logo", "Kairo UI Logo",
     "LogoImage"
 )
 
+local ColorPicker = Window:AddColorPicker(MainTab, "ESP Color", "Choose ESP color", 
+    Color3.fromRGB(255, 0, 0),  -- Default color
+    function(color)
+        print("Color changed:", color.R, color.G, color.B)
+    end,
+    "ESPColorPicker"
+)
+
 Window:AddParagraph(VisualsTab, "Visual Settings", "Customize your visual experience.")
 
 Window:AddToggle(VisualsTab, "ESP", "Show player outlines", true, function(state)
