@@ -68,6 +68,15 @@ Window:AddSlider(MainTab, "Volume", "Adjust game volume", 0, 100, 50, function(v
     print("Slider:", value)
 end, "VolumeSlider")
 
+local ImageBox = Window:AddImageBox(MainTab, "Logo", "Kairo UI Logo", 
+    "rbxassetid://16932740082",  -- Image ID
+    UDim2.new(0, 150, 0, 150),  -- Size
+    function(imageId)
+        print("Image clicked:", imageId)
+    end,
+    "LogoImage"
+)
+
 Window:AddParagraph(VisualsTab, "Visual Settings", "Customize your visual experience.")
 
 Window:AddToggle(VisualsTab, "ESP", "Show player outlines", true, function(state)
