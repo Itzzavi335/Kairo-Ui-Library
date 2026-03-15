@@ -24,6 +24,14 @@ local CombatTab = Window:CreateTab("Combat", "rbxassetid://16932740082")
 
 Window:AddParagraph(MainTab, "Welcome to Kairo UI", "Complete UI library with all features included.")
 
+local Keybind = Window:AddKeybind(MainTab, "Aimbot Key", "Key to activate aimbot", 
+    Enum.KeyCode.E,  -- Default key
+    function(key)
+        print("Key pressed:", key.Name)
+    end,
+    "AimbotKeybind"
+)
+
 Window:AddButton(MainTab, "Show Notification", "Display a sample notification", "rbxassetid://16932740082", function()
     Window:Notify({
         Title = "Kairo UI",
